@@ -1,15 +1,23 @@
+// https://yiou.me/blog/posts/how-does-markdown-parser-work
+// https://marked.js.org/using_pro#lexer
+// https://www.yongliangliu.com/blog/rmark/
+
 type Heading = {
 	type: "Heading";
-	size: number;
+	hashCount: number;
 	text: string;
 };
+
+const EPACE = " ";
+const MARKDOWN_LINE_BREAK = "  \n";
+const JUMP_LINE = "\n\n";
 
 // ---------------------------------------------------
 
 type ParserResult<T> = [resultOrError: T | Error, rest: string];
 type Parser<T> = (input: string) => ParserResult<T>;
-
 type SingleChar = string;
+
 const isError = <T>(result: T | Error): result is Error => result instanceof Error;
 
 // Creates parsers
@@ -29,7 +37,7 @@ const map =
 		return isError(result) ? [result, input] : [mapFn(result), rest];
 	};
 
-const chain =
+const and =
 	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<[A, B]> =>
 	input => {
 		const [resultA, restA] = parserA(input);
@@ -41,17 +49,23 @@ const chain =
 		return isError(resultB) ? [resultB, input] : [[resultA, resultB], restB];
 	};
 
-// const and =
-// 	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<[A, B]> =>
-// 	input => {
-// 		const [resultA, restA] = parserA(input);
+const and3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>) => and(and(parserA, parserB), parserC);
 
-// 		if (isError(resultA)) return [resultA, input];
+const or =
+	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<A | B> =>
+	input => {
+		const [resultA, restA] = parserA(input);
 
-// 		const [resultB, restB] = parserB(input);
+		return isError(resultA) ? parserB(input) : [resultA, restA];
+	};
 
-// 		return isError(resultB) ? [resultB, input] : [resultA, resultB];
-// 	};
+const succeededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<A> =>
+	map(and(parserA, parserB), ([resultA, _resultB]) => resultA);
+
+const precededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<B> =>
+	map(and(parserA, parserB), ([_resultA, resultB]) => resultB);
+
+// const optional = <A>(parser: Parser<A>) =>
 
 const manyN =
 	<A>(parser: Parser<A>, { min = 0, max = Infinity }): Parser<A[]> =>
@@ -69,15 +83,27 @@ const manyN =
 
 const many1 = <A>(parser: Parser<A>, max = Infinity): Parser<A[]> => manyN(parser, { min: 1, max });
 
+const concat = (parser: Parser<string[]>): Parser<string> => map(parser, result => result.join(""));
+
 const specificChar = (char: SingleChar) => satisfy(input => input === char);
 const anyChar = satisfy(_ => true);
-const charSequence = many1(anyChar);
+const charSequence = concat(many1(anyChar));
+const specificCharSequence = (charSequence: string) => input =>
+	input.startsWith(charSequence) ? [charSequence, input.slice(charSequence.length)] : [new Error("No match"), input];
 
-const space = specificChar(" ");
-const hashSequence = many1(specificChar("#"));
+const space = specificChar(EPACE);
+const lineBreak = specificCharSequence(MARKDOWN_LINE_BREAK);
+const jumpLine = specificCharSequence(JUMP_LINE);
+const headingHashSequence = concat(many1(specificChar("#"), 6));
 
-const heading = input => chain(chain(hashSequence, space), charSequence)(input);
+const heading = map(and(succeededBy(headingHashSequence, space), charSequence), ([hashes, text]) => {
+	return { type: "Heading" as const, hashCount: hashes.length, text };
+});
 
-console.log(heading("## Testando Heading"));
+const a = `## adsaed
+
+dased`;
+// console.log(heading("### Testando Heading"));
+console.log(heading(a));
 
 // Heading = # + ' ' + anything
