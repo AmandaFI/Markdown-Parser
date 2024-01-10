@@ -9,8 +9,15 @@ type Heading = {
 };
 
 const EPACE = " ";
+const EMPTY = "";
+
+const LITERAL_LINE_BREAK = "\\n";
+const LITERAL_TAB = "\\t";
+
+const LINE_BREAK = "\n";
 const MARKDOWN_LINE_BREAK = "  \n";
 const JUMP_LINE = "\n\n";
+const TAB = "\t";
 
 // ---------------------------------------------------
 
@@ -49,7 +56,8 @@ const and =
 		return isError(resultB) ? [resultB, input] : [[resultA, resultB], restB];
 	};
 
-const and3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>) => and(and(parserA, parserB), parserC);
+const and3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<[A, B, C]> =>
+	map(and(and(parserA, parserB), parserC), ([resultAB, resultC]) => [...resultAB, resultC]);
 
 const or =
 	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<A | B> =>
@@ -59,13 +67,8 @@ const or =
 		return isError(resultA) ? parserB(input) : [resultA, restA];
 	};
 
-const succeededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<A> =>
-	map(and(parserA, parserB), ([resultA, _resultB]) => resultA);
-
-const precededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<B> =>
-	map(and(parserA, parserB), ([_resultA, resultB]) => resultB);
-
-// const optional = <A>(parser: Parser<A>) =>
+const or3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<A | B | C> =>
+	or(or(parserA, parserB), parserC);
 
 const manyN =
 	<A>(parser: Parser<A>, { min = 0, max = Infinity }): Parser<A[]> =>
@@ -85,25 +88,85 @@ const many1 = <A>(parser: Parser<A>, max = Infinity): Parser<A[]> => manyN(parse
 
 const concat = (parser: Parser<string[]>): Parser<string> => map(parser, result => result.join(""));
 
+const succeededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<A> =>
+	map(and(parserA, parserB), ([resultA, _resultB]) => resultA);
+
+const precededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<B> =>
+	map(and(parserA, parserB), ([_resultA, resultB]) => resultB);
+
+const delimitedBy = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<B> =>
+	map(and3(parserA, parserB, parserC), ([_resultA, resultB, _resultC]) => resultB);
+
+const not =
+	(parser: Parser<string>): Parser<string> =>
+	input => {
+		const [result, rest] = parser(input);
+
+		return isError(result) ? [input, input] : [new Error("No match. (I did but it should not.)"), input];
+	};
+
 const specificChar = (char: SingleChar) => satisfy(input => input === char);
-const anyChar = satisfy(_ => true);
-const charSequence = concat(many1(anyChar));
-const specificCharSequence = (charSequence: string) => input =>
-	input.startsWith(charSequence) ? [charSequence, input.slice(charSequence.length)] : [new Error("No match"), input];
+const allButSpecificChar = (char: SingleChar) => satisfy(input => input !== char);
+// const anyChar = satisfy(_ => true);
+const anyChar = satisfy(c => c !== LINE_BREAK);
+
+const specificCharSequence =
+	(charSequence: string): Parser<string> =>
+	input =>
+		input.startsWith(charSequence) ? [charSequence, input.slice(charSequence.length)] : [new Error("No match"), input];
+
+const anyCharSequenceBut =
+	(charSequence: string): Parser<string> =>
+	input =>
+		input.startsWith(charSequence) ? [new Error("No match"), input] : [charSequence, input.slice(charSequence.length)];
+
+const empty = specificChar(EMPTY);
+
+const optional = <A>(parser: Parser<A>) => or(parser, empty);
+
+const literalLineBreak = specificCharSequence(LITERAL_LINE_BREAK);
+const literalTab = specificCharSequence(LITERAL_TAB);
+
+// const charSequence = concat(many1(anyChar));
 
 const space = specificChar(EPACE);
-const lineBreak = specificCharSequence(MARKDOWN_LINE_BREAK);
+const lineBreak = specificChar(LINE_BREAK);
+const tab = specificChar(TAB);
+
+const markdownLineBreak = specificCharSequence(MARKDOWN_LINE_BREAK);
 const jumpLine = specificCharSequence(JUMP_LINE);
 const headingHashSequence = concat(many1(specificChar("#"), 6));
 
-const heading = map(and(succeededBy(headingHashSequence, space), charSequence), ([hashes, text]) => {
-	return { type: "Heading" as const, hashCount: hashes.length, text };
-});
+const charSequence = many1(or3(literalLineBreak, literalTab, anyChar));
+const textLine = many1(and(not(markdownLineBreak), or3(literalLineBreak, literalTab, anyChar)));
 
-const a = `## adsaed
+const heading = map(
+	and(succeededBy(headingHashSequence, space), succeededBy(charSequence, optional(or(jumpLine, lineBreak)))),
+	([hashes, text]) => {
+		return { type: "Heading" as const, hashCount: hashes.length, text };
+	}
+);
 
-dased`;
+// FAZER UM PARSER BLOCO PARA MARKDOWN LINE BREAK E JUMP LINE
+
+const paragraph = delimitedBy(optional(or(lineBreak, tab)), many1(textLine), markdownLineBreak);
+
+// const heading = map(and(succeededBy(headingHashSequence, space), charSequence), ([hashes, text]) => {
+// 	return { type: "Heading" as const, hashCount: hashes.length, text };
+// });
+
+const a = `## ads		ae\\ndda\nse\n`;
 // console.log(heading("### Testando Heading"));
 console.log(heading(a));
 
 // Heading = # + ' ' + anything
+
+const b = `afsefsefsef  
+
+
+`;
+console.log(paragraph(b));
+
+// console.log(not(markdownLineBreak)(" \n"));
+
+console.log(textLine("fasefsae  "));
