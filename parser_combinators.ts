@@ -31,7 +31,7 @@ const isError = <T>(result: T | Error): result is Error => result instanceof Err
 const satisfy =
 	(matchFn: (char: SingleChar) => boolean): Parser<SingleChar> =>
 	input =>
-		input.length > 0 && matchFn(input[0]) ? [input[0], input.slice(1)] : [new Error("No match."), input];
+		input.length > 0 && matchFn(input[0]) ? [input[0], input.slice(1)] : [new Error("No match. (satisfy)"), input];
 
 // Recebe um parser de A, que tem como resultado positivo um valor do tipo A
 // e recebe também uma função que recebe um valor do tipo A e transforma em um valor do tipo B
@@ -113,12 +113,9 @@ const anyChar = satisfy(c => c !== LINE_BREAK);
 const specificCharSequence =
 	(charSequence: string): Parser<string> =>
 	input =>
-		input.startsWith(charSequence) ? [charSequence, input.slice(charSequence.length)] : [new Error("No match"), input];
-
-const anyCharSequenceBut =
-	(charSequence: string): Parser<string> =>
-	input =>
-		input.startsWith(charSequence) ? [new Error("No match"), input] : [charSequence, input.slice(charSequence.length)];
+		input.startsWith(charSequence)
+			? [charSequence, input.slice(charSequence.length)]
+			: [new Error("No match (charSequence)"), input];
 
 const empty = specificChar(EMPTY);
 
@@ -138,7 +135,7 @@ const jumpLine = specificCharSequence(JUMP_LINE);
 const headingHashSequence = concat(many1(specificChar("#"), 6));
 
 const charSequence = many1(or3(literalLineBreak, literalTab, anyChar));
-const textLine = many1(and(not(markdownLineBreak), or3(literalLineBreak, literalTab, anyChar)));
+const textLine = and(not(markdownLineBreak), many1(or3(literalLineBreak, literalTab, anyChar)));
 
 const heading = map(
 	and(succeededBy(headingHashSequence, space), succeededBy(charSequence, optional(or(jumpLine, lineBreak)))),
@@ -161,12 +158,9 @@ console.log(heading(a));
 
 // Heading = # + ' ' + anything
 
-const b = `afsefsefsef  
-
-
-`;
+const b = `afsefsefsef   \n`;
 console.log(paragraph(b));
 
 // console.log(not(markdownLineBreak)(" \n"));
 
-console.log(textLine("fasefsae  "));
+console.log(textLine("fasefsae  \n"));
