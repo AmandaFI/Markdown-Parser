@@ -44,7 +44,7 @@ const map =
 		return isError(result) ? [result, input] : [mapFn(result), rest];
 	};
 
-const all =
+const both =
 	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<[A, B]> =>
 	input => {
 		const [resultA, restA] = parserA(input);
