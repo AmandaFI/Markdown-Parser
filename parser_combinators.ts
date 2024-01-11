@@ -8,7 +8,7 @@ type Heading = {
 	text: string;
 };
 
-const EPACE = " ";
+const SPACE = " ";
 const EMPTY = "";
 
 const LITERAL_LINE_BREAK = "\\n";
@@ -117,13 +117,14 @@ const not =
 	input => {
 		const [result, rest] = parser(input);
 
-		return isError(result) ? [input, input] : [new Error("No match. (I did but it should not.)"), input];
+		return isError(result) ? ["", input] : [new Error("No match. (It did but it should not.)"), input];
 	};
 
-const specificChar = (char: SingleChar) => satisfy(input => input === char);
+const specificChar = <T extends string>(char: T) => satisfy(input => input === char) as Parser<T>;
+const specificChars = (chars: SingleChar[]) => satisfy(input => chars.includes(input));
+
 const allButSpecificChar = (char: SingleChar) => satisfy(input => input !== char);
-// const anyChar = satisfy(_ => true);
-const anyChar = satisfy(c => c !== LINE_BREAK);
+const allButSpecificChars = (chars: SingleChar[]) => satisfy(input => !chars.includes(input));
 
 const specificCharSequence =
 	(charSequence: string): Parser<string> =>
@@ -132,7 +133,8 @@ const specificCharSequence =
 			? [charSequence, input.slice(charSequence.length)]
 			: [new Error("No match (charSequence)"), input];
 
-const empty = specificChar(EMPTY);
+type EmptyString = "";
+const empty: Parser<EmptyString> = (input: string) => [EMPTY, input];
 
 const optional = <A>(parser: Parser<A>) => or(parser, empty);
 
@@ -141,16 +143,45 @@ const literalTab = specificCharSequence(LITERAL_TAB);
 
 // const charSequence = concat(many1(anyChar));
 
-const space = specificChar(EPACE);
-const lineBreak = specificChar(LINE_BREAK);
-const tab = specificChar(TAB);
+const space = specificChar(SPACE);
+const spaceSequence = map(many1(space), result => {
+	return {
+		type: "Space" as const,
+		quantity: result.length,
+	};
+});
 
-const markdownLineBreak = and3(space, space, lineBreak);
-const jumpLine = and(lineBreak, lineBreak);
+const tab = specificChar(TAB);
+const tabSequence = map(many1(tab), result => {
+	return {
+		type: "Tab" as const,
+		quantity: result.length,
+	};
+});
+
+const lineBreak = specificChar(LINE_BREAK);
+
+const markdownLineBreak = and(manyN(space, { min: 2 }), lineBreak);
+const jumpLine = manyN(lineBreak, { min: 2 });
+
 const headingHashSequence = concat(many1(specificChar("#"), 6));
 
-const charSequence = many1(or3(literalLineBreak, literalTab, anyChar));
-const textLine = many1(both(not(concat(markdownLineBreak)), or3(literalLineBreak, literalTab, anyChar)));
+const textChars = concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB])));
+const sentenceLineBreak = or(and(manyN(space, { min: 2 }), lineBreak), and(tabSequence, lineBreak));
+
+const text = many1(
+	or4(
+		textChars,
+		and(spaceSequence, concat(and(allButSpecificChar(SPACE), allButSpecificChar(LINE_BREAK)))),
+		and(tabSequence, allButSpecificChar(LINE_BREAK)),
+		and(lineBreak, allButSpecificChar(LINE_BREAK))
+	)
+);
+
+const sentence = and(many1(text), optional(sentenceLineBreak));
+const paragraph = and(many1(sentence), optional(jumpLine));
+
+const charSequence = many1(or3(literalLineBreak, literalTab, text));
 
 const heading = map(
 	and(succeededBy(headingHashSequence, space), succeededBy(charSequence, optional(or(jumpLine, lineBreak)))),
@@ -159,23 +190,6 @@ const heading = map(
 	}
 );
 
-// FAZER UM PARSER BLOCO PARA MARKDOWN LINE BREAK E JUMP LINE
-
-const paragraph = delimitedBy(optional(or(lineBreak, tab)), many1(textLine), markdownLineBreak);
-
-// const heading = map(and(succeededBy(headingHashSequence, space), charSequence), ([hashes, text]) => {
-// 	return { type: "Heading" as const, hashCount: hashes.length, text };
-// });
-
-const a = `## ads		ae\\ndda\nse\n`;
-// console.log(heading("### Testando Heading"));
-console.log(heading(a));
-
-// Heading = # + ' ' + anything
-
-const b = `afsefsefsef   \n`;
-console.log(paragraph(b));
-
-// console.log(not(markdownLineBreak)(" \n"));
-
-console.log(textLine("fa sefsae  \n"));
+console.log(text("abc def	 \nhhh  \n"));
+// console.log(sentence("abc def		\nhhh  \n"));
+// console.log(paragraph("abc def		\nhhh  \n\n\n"));
