@@ -44,6 +44,18 @@ const map =
 		return isError(result) ? [result, input] : [mapFn(result), rest];
 	};
 
+const all =
+	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<[A, B]> =>
+	input => {
+		const [resultA, restA] = parserA(input);
+
+		if (isError(resultA)) return [resultA, input];
+
+		const [resultB, restB] = parserB(input);
+
+		return isError(resultB) ? [resultB, input] : [[resultA, resultB], restB];
+	};
+
 const and =
 	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<[A, B]> =>
 	input => {
@@ -69,6 +81,9 @@ const or =
 
 const or3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<A | B | C> =>
 	or(or(parserA, parserB), parserC);
+
+const or4 = <A, B, C, D>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>, parserD: Parser<D>): Parser<A | B | C | D> =>
+	or(or3(parserA, parserB, parserC), parserD);
 
 const manyN =
 	<A>(parser: Parser<A>, { min = 0, max = Infinity }): Parser<A[]> =>
@@ -130,12 +145,12 @@ const space = specificChar(EPACE);
 const lineBreak = specificChar(LINE_BREAK);
 const tab = specificChar(TAB);
 
-const markdownLineBreak = specificCharSequence(MARKDOWN_LINE_BREAK);
-const jumpLine = specificCharSequence(JUMP_LINE);
+const markdownLineBreak = and3(space, space, lineBreak);
+const jumpLine = and(lineBreak, lineBreak);
 const headingHashSequence = concat(many1(specificChar("#"), 6));
 
 const charSequence = many1(or3(literalLineBreak, literalTab, anyChar));
-const textLine = and(not(markdownLineBreak), many1(or3(literalLineBreak, literalTab, anyChar)));
+const textLine = many1(both(not(concat(markdownLineBreak)), or3(literalLineBreak, literalTab, anyChar)));
 
 const heading = map(
 	and(succeededBy(headingHashSequence, space), succeededBy(charSequence, optional(or(jumpLine, lineBreak)))),
@@ -163,4 +178,4 @@ console.log(paragraph(b));
 
 // console.log(not(markdownLineBreak)(" \n"));
 
-console.log(textLine("fasefsae  \n"));
+console.log(textLine("fa sefsae  \n"));
