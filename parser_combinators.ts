@@ -181,8 +181,6 @@ const optional = <A>(parser: Parser<A>) => or(parser, empty);
 const literalLineBreak = specificCharSequence(LITERAL_LINE_BREAK);
 const literalTab = specificCharSequence(LITERAL_TAB);
 
-// const charSequence = concat(many1(anyChar));
-
 const space = specificChar(SPACE);
 const spaceSequence = map(many1(space), result => {
 	return {
@@ -202,6 +200,7 @@ const tabSequence = map(many1(tab), result => {
 const lineBreak = specificChar(LINE_BREAK);
 
 const markdownLineBreak = and(manyN(space, { min: 2 }), lineBreak);
+
 const jumpLine = map(many1(lineBreak), result => {
 	return {
 		type: "JumpLine",
@@ -250,8 +249,9 @@ const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([lines, _]) 
 
 const charSequence = many1(or3(literalLineBreak, literalTab, text));
 
+// Reveer heading
 const heading = map(
-	and(succeededBy(headingHashSequence, space), succeededBy(charSequence, optional(or(jumpLine, lineBreak)))),
+	and(succeededBy(headingHashSequence, space), succeededBy(textChars, optional(or(jumpLine, lineBreak)))),
 	([hashes, text]) => {
 		return { type: "Heading" as const, hashCount: hashes.quantity, text };
 	}
