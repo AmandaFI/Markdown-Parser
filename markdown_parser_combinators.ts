@@ -21,7 +21,14 @@ import {
 	or3,
 	succeededBy,
 	delimitedBy,
-} from "./parser_combinators";
+	or4,
+	andNot3,
+	and3,
+} from "./parser_combinators.ts";
+
+// em um or por exemplo, é possivel ver o backtracking dos parsers. Considerando um or(parserA, parserB),
+// primiero o ele tenta dar match com o parserA, caso não de ele se arrepende da decisão, retorna ao ponto
+// de antes de usar o parserA e tenta com o parserB dessa vez, isso consite em backtracking.
 
 const ASTERISKS = "*";
 
@@ -33,6 +40,7 @@ const JUMP_LINE = "\n\n";
 
 const literalLineBreak = specificCharSequence(LITERAL_LINE_BREAK);
 const literalTab = specificCharSequence(LITERAL_TAB);
+const astersisks = specificChar(ASTERISKS);
 
 const markdownLineBreak = and(manyN(space, { min: 2 }), lineBreak);
 
@@ -49,45 +57,57 @@ const headingHashSequence = map(many1(specificChar("#"), 6), result => {
 	};
 });
 
-const textChars = concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB])));
-const sentenceLineBreak = map(or(and(concat(manyN(space, { min: 2 })), lineBreak), and(tabSequence, lineBreak)), result => {
-	return {
-		type: "LineBreak",
-	};
-});
-
-const text = map(
-	concat(
-		many1(
-			or6(
-				map(literalLineBreak, result => LINE_BREAK),
-				map(literalTab, result => TAB),
-				textChars,
-				map(andNot(space, and(spaceSequence, specificChar(LINE_BREAK))), result => SPACE),
-				map(andNot(tabSequence, specificChar(LINE_BREAK)), result => SPACE),
-				map(andNot(lineBreak, specificChar(LINE_BREAK)), result => SPACE)
-			)
-		)
-	),
+const sentenceLineBreak = map(
+	or3(and(concat(manyN(space, { min: 2 })), lineBreak), and(tabSequence, lineBreak), manyN(lineBreak, { min: 2 })),
 	result => {
-		return result;
-		// return {
-		// 	type: "raw",
-		// 	text,
-		// };
+		return {
+			type: "LineBreak",
+		};
 	}
 );
 
-const astersisks = specificChar(ASTERISKS);
-const bold = map(delimitedBy(manyN(astersisks, { min: 2, max: 2 }), text, manyN(astersisks, { min: 2, max: 2 })), result => {
+const textChars = concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB, ASTERISKS])));
+
+const boldIndicator = concat(manyN(astersisks, { min: 2, max: 2 }));
+
+const textSpace = map(
+	or3(
+		andNot(space, and(spaceSequence, specificChar(LINE_BREAK))),
+		andNot(tabSequence, specificChar(LINE_BREAK)),
+		andNot(lineBreak, specificChar(LINE_BREAK))
+	),
+	_ => SPACE
+);
+
+const literalSpecialChars = or(
+	map(literalLineBreak, _ => LINE_BREAK),
+	map(literalTab, _ => TAB)
+
+	// map(andNot(boldIndicator, textChars), _ => ASTERISKS.repeat(boldIndicator.length + 1))
+	// map(andNot(boldIndicator, textChars), _ => ASTERISKS.repeat(boldIndicator.length + 1))
+);
+
+// problema ao ler os ** ultimos asteriscos quando não é bold
+const literalAsteriscksChar = map(
+	andNot3(boldIndicator, many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))), boldIndicator),
+	_ => ASTERISKS.repeat(boldIndicator.length + 1)
+);
+
+const rawText = map(concat(many1(or4(literalSpecialChars, literalAsteriscksChar, textChars, textSpace))), result => {
 	return result;
 	// return {
-	// 	type: "bold",
-	// 	text: result,
+	// 	type: "raw",
+	// 	text,
 	// };
 });
 
-const line = map(and(or(bold, concat(many1(text))), optional(sentenceLineBreak)), ([text, _]) => {
+const boldText = delimitedBy(
+	boldIndicator,
+	many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))),
+	boldIndicator
+);
+
+const line = map(and(many1(or(boldText, rawText)), sentenceLineBreak), ([text, _]) => {
 	return {
 		type: "Line" as const,
 		text,
@@ -100,7 +120,7 @@ const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([lines, _]) 
 	};
 });
 
-const charSequence = many1(or3(literalLineBreak, literalTab, text));
+const charSequence = many1(or3(literalLineBreak, literalTab, rawText));
 
 // Reveer heading
 const heading = map(
@@ -110,11 +130,38 @@ const heading = map(
 	}
 );
 
-console.log(text("abc \\ndef\nhhh  \n"));
-console.log(line("abc \\tdef\nhhh  \n"));
-console.log(line("abc \\td**should be bold** aaf\nhhh  \n"));
+// console.log(rawText("abc \\ndef\nhhh  \n"));
+// console.log(line("abc \\tdef\nhhh  \n"));
+// console.log(line("abc \\td**should be bold** aaf\nhhh  \n"));
 
-// console.log(bold("**abc**"));
-console.log(manyN(astersisks, { min: 2, max: 2 })("**abc***"));
+// // console.log(bold("**abc**"));
+// console.log(manyN(astersisks, { min: 2, max: 2 })("**abc***"));
 
-console.log(paragraph("This is a test 1. This is a test 2.  \nThis is a test 3.  \n"));
+// console.log(paragraph("This is a test 1. This is a test 2.  \nThis is a test 3.  \n"));
+
+// console.log(boldIndicator("**"));
+console.log(boldText("**abc**"));
+
+console.log(rawText("abcdde* aedaklfe"));
+
+console.log(line("abcd **bold** efg  \n"));
+console.log(line("abcd** bold** efg  \n"));
+console.log(line("abcd**bold ** efg  \n"));
+
+console.log(literalAsteriscksChar("**bold **"));
+
+console.log(
+	and3(
+		boldIndicator,
+		many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))),
+		boldIndicator
+	)("**bold jn**")
+);
+
+console.log(
+	andNot3(
+		boldIndicator,
+		many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))),
+		boldIndicator
+	)("**is bold **")
+);

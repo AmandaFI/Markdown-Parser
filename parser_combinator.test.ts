@@ -24,6 +24,7 @@ import {
 	concat,
 	specificCharSequence,
 	empty,
+	andNot3,
 } from "./parser_combinators.ts";
 
 describe("Level 1 parsers:", () => {
@@ -180,6 +181,11 @@ describe("Level 1 parsers:", () => {
 		});
 		it(() => {
 			assertArrayIncludes(andNot(parserA, parserB)("bca"), [new Error(), "bca"]);
+		});
+		it("AndNot", () => {
+			assertArrayIncludes(andNot3(parserA, parserB, parserC)("abc"), [new Error(), "abc"]);
+			assertArrayIncludes(andNot3(parserA, parserB, parserC)("adbc"), ["a", "dbc"]);
+			assertArrayIncludes(andNot3(parserA, parserB, parserC)("abdc"), [new Error(), "abdc"]);
 		});
 	});
 	describe("Empty:", () => {
