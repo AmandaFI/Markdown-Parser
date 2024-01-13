@@ -17,9 +17,16 @@ import {
 	or4,
 	or5,
 	or6,
+	specificChar,
+	allButSpecificChars,
+	allButSpecificChar,
+	specificChars,
+	concat,
+	specificCharSequence,
+	empty,
 } from "./parser_combinators.ts";
 
-describe("Primitive parsers:", () => {
+describe("Level 1 parsers:", () => {
 	const parserA = satisfy(char => char === "a");
 	const parserB = satisfy(char => char === "b");
 	const parserC = satisfy(char => char === "c");
@@ -173,6 +180,67 @@ describe("Primitive parsers:", () => {
 		});
 		it(() => {
 			assertArrayIncludes(andNot(parserA, parserB)("bca"), [new Error(), "bca"]);
+		});
+	});
+	describe("Empty:", () => {
+		it(() => {
+			assertArrayIncludes(empty("a"), ["", "a"]);
+		});
+		it(() => {
+			assertArrayIncludes(empty(""), ["", ""]);
+		});
+	});
+});
+
+describe("Level 2 parsers:", () => {
+	const parserA = satisfy(char => char === "a");
+
+	describe("SpecificChar", () => {
+		it(() => {
+			assertArrayIncludes(specificChar("a")("acd"), ["a", "cd"]);
+		});
+		it(() => {
+			assertArrayIncludes(specificChar("a")("cda"), [new Error(), "cda"]);
+		});
+	});
+	describe("SpecificChars", () => {
+		it(() => {
+			assertArrayIncludes(specificChars(["a", "b"])("acd"), ["a", "cd"]);
+		});
+		it(() => {
+			assertArrayIncludes(specificChars(["a", "b"])("cda"), [new Error(), "cda"]);
+		});
+	});
+	describe("AllButSpecificChar", () => {
+		it(() => {
+			assertArrayIncludes(allButSpecificChar("a")("cda"), ["c", "da"]);
+		});
+		it(() => {
+			assertArrayIncludes(allButSpecificChar("a")("abc"), [new Error(), "abc"]);
+		});
+	});
+	describe("AllButSpecificChars", () => {
+		it(() => {
+			assertArrayIncludes(allButSpecificChars(["a", "b"])("cda"), ["c", "da"]);
+		});
+		it(() => {
+			assertArrayIncludes(allButSpecificChars(["a", "b"])("bac"), [new Error(), "bac"]);
+		});
+	});
+	describe("SpecificCharSequence", () => {
+		it(() => {
+			assertArrayIncludes(specificCharSequence("abc")("abcdef"), ["abc", "def"]);
+		});
+		it(() => {
+			assertArrayIncludes(specificCharSequence("abc")("fabcde"), [new Error(), "fabcde"]);
+		});
+	});
+	describe("Concat", () => {
+		it(() => {
+			assertArrayIncludes(concat(many1(parserA))("aaabc"), ["aaa", "bc"]);
+		});
+		it(() => {
+			assertArrayIncludes(concat(many1(parserA))("baaabc"), [new Error(), "baaabc"]);
 		});
 	});
 });

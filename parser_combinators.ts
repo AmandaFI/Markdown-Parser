@@ -32,18 +32,6 @@ export const map =
 		return isError(result) ? [result, input] : [mapFn(result), rest];
 	};
 
-const both =
-	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<[A, B]> =>
-	input => {
-		const [resultA, restA] = parserA(input);
-
-		if (isError(resultA)) return [resultA, input];
-
-		const [resultB, restB] = parserB(input);
-
-		return isError(resultB) ? [resultB, input] : [[resultA, resultB], restB];
-	};
-
 export const and =
 	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<[A, B]> =>
 	input => {
@@ -66,18 +54,6 @@ export const andNot =
 		const [resultB, restB] = parserB(restA);
 
 		return isError(resultB) ? [resultA, restA] : [error("No match. (andNot)"), input];
-	};
-
-const partialAnd =
-	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<A> =>
-	input => {
-		const [resultA, restA] = parserA(input);
-
-		if (isError(resultA)) return [resultA, input];
-
-		const [resultB, restB] = parserB(restA);
-
-		return isError(resultB) ? [error("No match. (partialAnd)"), input] : [resultA, restA];
 	};
 
 export const and3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<[A, B, C]> =>
@@ -134,8 +110,6 @@ export const manyN =
 
 export const many1 = <A>(parser: Parser<A>, max = Infinity): Parser<A[]> => manyN(parser, { min: 1, max });
 
-export const concat = (parser: Parser<string[]>): Parser<string> => map(parser, result => result.join(""));
-
 export const succeededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<A> =>
 	map(and(parserA, parserB), ([resultA, _resultB]) => resultA);
 
@@ -145,6 +119,8 @@ export const precededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser
 export const delimitedBy = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<B> =>
 	map(and3(parserA, parserB, parserC), ([_resultA, resultB, _resultC]) => resultB);
 
+export const concat = (parser: Parser<string[]>): Parser<string> => map(parser, result => result.join(""));
+
 const not =
 	(parser: Parser<string>): Parser<string> =>
 	input => {
@@ -153,10 +129,12 @@ const not =
 		return isError(result) ? ["", input] : [error("No match. (It did but it should not.)"), input];
 	};
 
-export const specificChar = <T extends string>(char: T) => satisfy(input => input === char) as Parser<T>;
-const specificChars = (chars: SingleChar[]) => satisfy(input => chars.includes(input));
+export const optional = <A>(parser: Parser<A>) => or(parser, empty);
 
-const allButSpecificChar = (char: SingleChar) => satisfy(input => input !== char);
+export const specificChar = <T extends string>(char: T) => satisfy(input => input === char) as Parser<T>;
+export const specificChars = (chars: SingleChar[]) => satisfy(input => chars.includes(input));
+
+export const allButSpecificChar = (char: SingleChar) => satisfy(input => input !== char);
 export const allButSpecificChars = (chars: SingleChar[]) => satisfy(input => !chars.includes(input));
 
 export const specificCharSequence =
@@ -164,13 +142,13 @@ export const specificCharSequence =
 	input =>
 		input.startsWith(charSequence) ? [charSequence, input.slice(charSequence.length)] : [error("No match (charSequence)"), input];
 
-const empty: Parser<EmptyString> = (input: string) => [EMPTY, input];
+export const empty: Parser<EmptyString> = (input: string) => [EMPTY, input];
 
-export const optional = <A>(parser: Parser<A>) => or(parser, empty);
-
+// ------------------- not yet tested ----------------
 export const lineBreak = specificChar(LINE_BREAK);
-
 export const space = specificChar(SPACE);
+export const tab = specificChar(TAB);
+
 export const spaceSequence = map(many1(space), result => {
 	return {
 		type: "Space" as const,
@@ -178,7 +156,6 @@ export const spaceSequence = map(many1(space), result => {
 	};
 });
 
-export const tab = specificChar(TAB);
 export const tabSequence = map(many1(tab), result => {
 	return {
 		type: "Tab" as const,
