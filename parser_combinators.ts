@@ -2,34 +2,21 @@
 // https://marked.js.org/using_pro#lexer
 // https://www.yongliangliu.com/blog/rmark/
 
-type Heading = {
-	type: "Heading";
-	hashCount: number;
-	text: string;
-};
-
-const SPACE = " ";
+export const SPACE = " ";
 const EMPTY = "";
-
-const LITERAL_LINE_BREAK = "\\n";
-const LITERAL_TAB = "\\t";
-
-const LINE_BREAK = "\n";
-const MARKDOWN_LINE_BREAK = "  \n";
-const JUMP_LINE = "\n\n";
-const TAB = "\t";
-
-// ---------------------------------------------------
+export const TAB = "\t";
+export const LINE_BREAK = "\n";
 
 type ParserResult<T> = [resultOrError: T | Error, rest: string];
 type Parser<T> = (input: string) => ParserResult<T>;
 type SingleChar = string;
+type EmptyString = typeof EMPTY; // outro jeito ?
 
 const isError = <T>(result: T | Error): result is Error => result instanceof Error;
 const error = (message: string) => new Error(message);
 
 // Creates parsers
-const satisfy =
+export const satisfy =
 	(matchFn: (char: SingleChar) => boolean): Parser<SingleChar> =>
 	input =>
 		input.length > 0 && matchFn(input[0]) ? [input[0], input.slice(1)] : [error("No match. (satisfy)"), input];
@@ -37,7 +24,7 @@ const satisfy =
 // Recebe um parser de A, que tem como resultado positivo um valor do tipo A
 // e recebe também uma função que recebe um valor do tipo A e transforma em um valor do tipo B
 // Se map retorna uma funçao que recebe um input e retorna um result do tipo B, logo é uma função parser de B
-const map =
+export const map =
 	<A, B>(parserA: Parser<A>, mapFn: (value: A) => B): Parser<B> =>
 	input => {
 		const [result, rest] = parserA(input);
@@ -57,7 +44,7 @@ const both =
 		return isError(resultB) ? [resultB, input] : [[resultA, resultB], restB];
 	};
 
-const and =
+export const and =
 	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<[A, B]> =>
 	input => {
 		const [resultA, restA] = parserA(input);
@@ -69,7 +56,7 @@ const and =
 		return isError(resultB) ? [resultB, input] : [[resultA, resultB], restB];
 	};
 
-const andNot =
+export const andNot =
 	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<A> =>
 	input => {
 		const [resultA, restA] = parserA(input);
@@ -93,10 +80,10 @@ const partialAnd =
 		return isError(resultB) ? [error("No match. (partialAnd)"), input] : [resultA, restA];
 	};
 
-const and3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<[A, B, C]> =>
+export const and3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<[A, B, C]> =>
 	map(and(and(parserA, parserB), parserC), ([resultAB, resultC]) => [...resultAB, resultC]);
 
-const or =
+export const or =
 	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<A | B> =>
 	input => {
 		const [resultA, restA] = parserA(input);
@@ -104,13 +91,17 @@ const or =
 		return isError(resultA) ? parserB(input) : [resultA, restA];
 	};
 
-const or3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<A | B | C> =>
+export const or3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<A | B | C> =>
 	or(or(parserA, parserB), parserC);
 
-const or4 = <A, B, C, D>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>, parserD: Parser<D>): Parser<A | B | C | D> =>
-	or(or3(parserA, parserB, parserC), parserD);
+export const or4 = <A, B, C, D>(
+	parserA: Parser<A>,
+	parserB: Parser<B>,
+	parserC: Parser<C>,
+	parserD: Parser<D>
+): Parser<A | B | C | D> => or(or3(parserA, parserB, parserC), parserD);
 
-const or5 = <A, B, C, D, E>(
+export const or5 = <A, B, C, D, E>(
 	parserA: Parser<A>,
 	parserB: Parser<B>,
 	parserC: Parser<C>,
@@ -118,7 +109,7 @@ const or5 = <A, B, C, D, E>(
 	parserE: Parser<E>
 ): Parser<A | B | C | D | E> => or(or4(parserA, parserB, parserC, parserD), parserE);
 
-const or6 = <A, B, C, D, E, F>(
+export const or6 = <A, B, C, D, E, F>(
 	parserA: Parser<A>,
 	parserB: Parser<B>,
 	parserC: Parser<C>,
@@ -127,8 +118,8 @@ const or6 = <A, B, C, D, E, F>(
 	parserF: Parser<F>
 ): Parser<A | B | C | D | E | F> => or(or5(parserA, parserB, parserC, parserD, parserE), parserF);
 
-const manyN =
-	<A>(parser: Parser<A>, { min = 0, max = Infinity }): Parser<A[]> =>
+export const manyN =
+	<A>(parser: Parser<A>, { min = 0, max = Infinity } = {}): Parser<A[]> =>
 	input => {
 		if (max === 0) return [[], input];
 
@@ -141,17 +132,17 @@ const manyN =
 		return map(manyN(parser, { min: min - 1, max: max - 1 }), otherResults => [result, ...otherResults])(rest);
 	};
 
-const many1 = <A>(parser: Parser<A>, max = Infinity): Parser<A[]> => manyN(parser, { min: 1, max });
+export const many1 = <A>(parser: Parser<A>, max = Infinity): Parser<A[]> => manyN(parser, { min: 1, max });
 
-const concat = (parser: Parser<string[]>): Parser<string> => map(parser, result => result.join(""));
+export const concat = (parser: Parser<string[]>): Parser<string> => map(parser, result => result.join(""));
 
-const succeededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<A> =>
+export const succeededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<A> =>
 	map(and(parserA, parserB), ([resultA, _resultB]) => resultA);
 
-const precededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<B> =>
+export const precededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<B> =>
 	map(and(parserA, parserB), ([_resultA, resultB]) => resultB);
 
-const delimitedBy = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<B> =>
+export const delimitedBy = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<B> =>
 	map(and3(parserA, parserB, parserC), ([_resultA, resultB, _resultC]) => resultB);
 
 const not =
@@ -162,101 +153,35 @@ const not =
 		return isError(result) ? ["", input] : [error("No match. (It did but it should not.)"), input];
 	};
 
-const specificChar = <T extends string>(char: T) => satisfy(input => input === char) as Parser<T>;
+export const specificChar = <T extends string>(char: T) => satisfy(input => input === char) as Parser<T>;
 const specificChars = (chars: SingleChar[]) => satisfy(input => chars.includes(input));
 
 const allButSpecificChar = (char: SingleChar) => satisfy(input => input !== char);
-const allButSpecificChars = (chars: SingleChar[]) => satisfy(input => !chars.includes(input));
+export const allButSpecificChars = (chars: SingleChar[]) => satisfy(input => !chars.includes(input));
 
-const specificCharSequence =
+export const specificCharSequence =
 	(charSequence: string): Parser<string> =>
 	input =>
 		input.startsWith(charSequence) ? [charSequence, input.slice(charSequence.length)] : [error("No match (charSequence)"), input];
 
-type EmptyString = "";
 const empty: Parser<EmptyString> = (input: string) => [EMPTY, input];
 
-const optional = <A>(parser: Parser<A>) => or(parser, empty);
+export const optional = <A>(parser: Parser<A>) => or(parser, empty);
 
-const literalLineBreak = specificCharSequence(LITERAL_LINE_BREAK);
-const literalTab = specificCharSequence(LITERAL_TAB);
+export const lineBreak = specificChar(LINE_BREAK);
 
-const space = specificChar(SPACE);
-const spaceSequence = map(many1(space), result => {
+export const space = specificChar(SPACE);
+export const spaceSequence = map(many1(space), result => {
 	return {
 		type: "Space" as const,
 		quantity: result.length,
 	};
 });
 
-const tab = specificChar(TAB);
-const tabSequence = map(many1(tab), result => {
+export const tab = specificChar(TAB);
+export const tabSequence = map(many1(tab), result => {
 	return {
 		type: "Tab" as const,
 		quantity: result.length,
 	};
 });
-
-const lineBreak = specificChar(LINE_BREAK);
-
-const markdownLineBreak = and(manyN(space, { min: 2 }), lineBreak);
-
-const jumpLine = map(many1(lineBreak), result => {
-	return {
-		type: "JumpLine",
-	};
-});
-
-const headingHashSequence = map(many1(specificChar("#"), 6), result => {
-	return {
-		type: "Hash",
-		quantity: result.length,
-	};
-});
-
-const textChars = concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB])));
-const sentenceLineBreak = map(or(and(concat(manyN(space, { min: 2 })), lineBreak), and(tabSequence, lineBreak)), result => {
-	return {
-		type: "LineBreak",
-	};
-});
-
-const text = concat(
-	many1(
-		or6(
-			map(literalLineBreak, result => LINE_BREAK),
-			map(literalTab, result => TAB),
-			textChars,
-			map(andNot(space, and(spaceSequence, specificChar(LINE_BREAK))), result => SPACE),
-			map(andNot(tabSequence, specificChar(LINE_BREAK)), result => SPACE),
-			map(andNot(lineBreak, specificChar(LINE_BREAK)), result => SPACE)
-		)
-	)
-);
-
-const line = map(and(many1(text), optional(sentenceLineBreak)), ([text, _]) => {
-	return {
-		type: "Line" as const,
-		text,
-	};
-});
-const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([lines, _]) => {
-	return {
-		type: "Paragraph" as const,
-		lines,
-	};
-});
-
-const charSequence = many1(or3(literalLineBreak, literalTab, text));
-
-// Reveer heading
-const heading = map(
-	and(succeededBy(headingHashSequence, space), succeededBy(textChars, optional(or(jumpLine, lineBreak)))),
-	([hashes, text]) => {
-		return { type: "Heading" as const, hashCount: hashes.quantity, text };
-	}
-);
-
-console.log(text("abc \\ndef\nhhh  \n"));
-console.log(line("abc \\tdef\nhhh  \n"));
-console.log(paragraph("This is a test 1. This is a test 2.  \nThis is a test 3.  \n"));
