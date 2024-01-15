@@ -56,24 +56,24 @@ export const andNot =
 		return isError(resultB) ? [resultA, restA] : [error("No match. (andNot)"), input];
 	};
 
-// export const andNot3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<A> =>
-// 	andNot(andNot(parserA, parserB), parserC);
+export const andNot3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<A> =>
+	andNot(parserA, and(parserB, parserC));
 
-export const andNot3 =
-	<A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<A> =>
-	input => {
-		const [resultA, restA] = parserA(input);
+// export const andNot3 =
+// 	<A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<A> =>
+// 	input => {
+// 		const [resultA, restA] = parserA(input);
 
-		if (isError(resultA)) return [resultA, input];
+// 		if (isError(resultA)) return [resultA, input];
 
-		const [resultB, restB] = parserB(restA);
+// 		const [resultB, restB] = parserB(restA);
 
-		if (isError(resultB)) return [resultB, input];
+// 		if (isError(resultB)) return [resultB, input];
 
-		const [resultC, restC] = parserC(restB);
+// 		const [resultC, restC] = parserC(restB);
 
-		return isError(resultC) ? [resultA, restA] : [error("No match. (andNot)"), input];
-	};
+// 		return isError(resultC) ? [resultA, restA] : [error("No match. (andNot)"), input];
+// 	};
 
 export const and3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<[A, B, C]> =>
 	map(and(and(parserA, parserB), parserC), ([resultAB, resultC]) => [...resultAB, resultC]);
