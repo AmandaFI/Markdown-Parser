@@ -24,6 +24,7 @@ import {
 	or4,
 	andNot3,
 	and3,
+	any,
 } from "./parser_combinators.ts";
 
 // em um or por exemplo, é possivel ver o backtracking dos parsers. Considerando um or(parserA, parserB),
@@ -66,11 +67,11 @@ const sentenceLineBreak = map(
 	}
 );
 
-const textChars = concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB, ASTERISKS])));
+export const textChars = concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB, ASTERISKS])));
 
 const boldIndicator = concat(manyN(astersisks, { min: 2, max: 2 }));
 
-const textSpace = map(
+export const textSpace = map(
 	or3(
 		andNot(space, and(spaceSequence, specificChar(LINE_BREAK))),
 		andNot(tabSequence, specificChar(LINE_BREAK)),
@@ -79,18 +80,37 @@ const textSpace = map(
 	_ => SPACE
 );
 
-const literalSpecialChars = or(
+export const literalSpecialChars = or(
 	map(literalLineBreak, _ => LINE_BREAK),
 	map(literalTab, _ => TAB)
-
-	// map(andNot(boldIndicator, textChars), _ => ASTERISKS.repeat(boldIndicator.length + 1))
-	// map(andNot(boldIndicator, textChars), _ => ASTERISKS.repeat(boldIndicator.length + 1))
 );
 
-// problema ao ler os ** ultimos asteriscos quando não é bold
-const literalAsteriscksChar = map(
-	andNot3(boldIndicator, many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))), boldIndicator),
-	_ => ASTERISKS.repeat(boldIndicator.length + 1)
+export const literalAsteriscksChar = map(
+	and(
+		any(
+			and3(boldIndicator, many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))), boldIndicator),
+			// andNot(
+			// 	astersisks,
+			// 	or(astersisks, and(many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))), astersisks))
+			// )
+			and3(astersisks, many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))), astersisks)
+		),
+		concat(many1(astersisks))
+	),
+	result => ASTERISKS.repeat(result[1].length)
+);
+
+// CASO DE TER LITERAL * DENTRO DO BOLD E DO ITALIC
+export const italicText = delimitedBy(
+	astersisks,
+	many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))),
+	astersisks
+);
+
+export const boldText = delimitedBy(
+	boldIndicator,
+	many1(or(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars)))), italicText)),
+	boldIndicator
 );
 
 const rawText = map(concat(many1(or4(literalSpecialChars, literalAsteriscksChar, textChars, textSpace))), result => {
@@ -100,12 +120,6 @@ const rawText = map(concat(many1(or4(literalSpecialChars, literalAsteriscksChar,
 	// 	text,
 	// };
 });
-
-const boldText = delimitedBy(
-	boldIndicator,
-	many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))),
-	boldIndicator
-);
 
 const line = map(and(many1(or(boldText, rawText)), sentenceLineBreak), ([text, _]) => {
 	return {
@@ -140,28 +154,42 @@ const heading = map(
 // console.log(paragraph("This is a test 1. This is a test 2.  \nThis is a test 3.  \n"));
 
 // console.log(boldIndicator("**"));
+// console.log(boldText("**abc**"));
+
+// console.log(rawText("abcdde* aedaklfe"));
+
+// console.log(line("abcd **bold** efg  \n"));
+// console.log(line("abcd**bold**efg  \n"));
+// console.log(line("abcd** bold** efg  \n"));
+// console.log(line("abcd**bold ** efg  \n"));
+
+// console.log(literalAsteriscksChar("**bold **"));
+
+// console.log(
+// 	and3(
+// 		boldIndicator,
+// 		many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))),
+// 		boldIndicator
+// 	)("**bold jn**")
+// );
+
+// console.log(
+// 	andNot3(
+// 		boldIndicator,
+// 		many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))),
+// 		boldIndicator
+// 	)("**is bold **")
+// );
+
+// console.log(italicText("*ab *c*"));
+// console.log(italicText("***abc***"));
+
+// console.log(italicText("* abc*"));
+// console.log(italicText("*abc *"));
+
 console.log(boldText("**abc**"));
+console.log(boldText("***abc***"));
 
-console.log(rawText("abcdde* aedaklfe"));
-
-console.log(line("abcd **bold** efg  \n"));
-console.log(line("abcd** bold** efg  \n"));
-console.log(line("abcd**bold ** efg  \n"));
-
-console.log(literalAsteriscksChar("**bold **"));
-
-console.log(
-	and3(
-		boldIndicator,
-		many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))),
-		boldIndicator
-	)("**bold jn**")
-);
-
-console.log(
-	andNot3(
-		boldIndicator,
-		many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))),
-		boldIndicator
-	)("**is bold **")
-);
+// console.log(boldText("** abc**"));
+// console.log(boldText("**abc *"));
+// console.log(boldText("**abc*"));

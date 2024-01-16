@@ -27,6 +27,8 @@ import {
 	andNot3,
 } from "./parser_combinators.ts";
 
+import { italicText, literalAsteriscksChar, literalSpecialChars, textChars, textSpace } from "./markdown_parser_combinators.ts";
+
 describe("Level 1 parsers:", () => {
 	const parserA = satisfy(char => char === "a");
 	const parserB = satisfy(char => char === "b");
@@ -182,10 +184,10 @@ describe("Level 1 parsers:", () => {
 		it(() => {
 			assertArrayIncludes(andNot(parserA, parserB)("bca"), [new Error(), "bca"]);
 		});
-		it("AndNot", () => {
+		it("AndNot3", () => {
 			assertArrayIncludes(andNot3(parserA, parserB, parserC)("abc"), [new Error(), "abc"]);
 			assertArrayIncludes(andNot3(parserA, parserB, parserC)("adbc"), ["a", "dbc"]);
-			assertArrayIncludes(andNot3(parserA, parserB, parserC)("abdc"), [new Error(), "abdc"]);
+			assertArrayIncludes(andNot3(parserA, parserB, parserC)("abdc"), ["a", "bdc"]);
 		});
 	});
 	describe("Empty:", () => {
@@ -249,4 +251,75 @@ describe("Level 2 parsers:", () => {
 			assertArrayIncludes(concat(many1(parserA))("baaabc"), [new Error(), "baaabc"]);
 		});
 	});
+});
+
+describe("Markdown parsers:", () => {
+	describe("TextChars:", () => {
+		it(() => {
+			assertArrayIncludes(textChars("azAZ09!@#$%&()_-+={[]}.,:;|\\//?'"), ["azAZ09!@#$%&()_-+={[]}.,:;|\\//?'", ""]);
+		});
+		it("No space.", () => {
+			assertArrayIncludes(textChars("ab c"), ["ab", " c"]);
+		});
+		it("No tab.", () => {
+			assertArrayIncludes(textChars("a	bc"), ["a", "	bc"]);
+		});
+		it("No *.", () => {
+			assertArrayIncludes(textChars("ab*c"), ["ab", "*c"]);
+		});
+		it("No \n", () => {
+			assertArrayIncludes(textChars("abc\n"), ["abc", "\n"]);
+		});
+		it(() => {
+			assertArrayIncludes(textChars(" abc"), [new Error(), " abc"]);
+			assertArrayIncludes(textChars("	abc"), [new Error(), "	abc"]);
+			assertArrayIncludes(textChars("*abc"), [new Error(), "*abc"]);
+			assertArrayIncludes(textChars("\nabc"), [new Error(), "\nabc"]);
+		});
+	});
+	describe("TextSpace:", () => {
+		it(() => {
+			assertArrayIncludes(textSpace(" abc"), [" ", "abc"]);
+		});
+		it("space + space* + \n", () => {
+			assertArrayIncludes(textSpace("  \nabc"), [new Error(), "  \nabc"]);
+		});
+		it("space + tab* + \n", () => {
+			assertArrayIncludes(textSpace("	\nabc"), [new Error(), "	\nabc"]);
+		});
+		it("space + \n + \n*", () => {
+			assertArrayIncludes(textSpace("\n\nabc"), [new Error(), "\n\nabc"]);
+		});
+	});
+
+	describe("LiteralSpecialChars:", () => {
+		assertArrayIncludes(literalSpecialChars("\\nabc"), ["\n", "abc"]);
+		assertArrayIncludes(literalSpecialChars("\\tabc"), ["\t", "abc"]);
+		assertArrayIncludes(literalSpecialChars("\nabc"), [new Error(), "\nabc"]);
+		assertArrayIncludes(literalSpecialChars("\tabc"), [new Error(), "\tabc"]);
+	});
+
+	describe("LiteralAsteriscksChar:", () => {
+		assertArrayIncludes(literalAsteriscksChar("*abc"), ["*", "abc"]);
+		assertArrayIncludes(literalAsteriscksChar("* abc"), ["*", " abc"]);
+		assertArrayIncludes(literalAsteriscksChar("**abc"), ["**", "abc"]);
+		assertArrayIncludes(literalAsteriscksChar("** abc"), ["**", " abc"]);
+		assertArrayIncludes(literalAsteriscksChar("**abc*"), ["**", "abc*"]);
+		assertArrayIncludes(literalAsteriscksChar("**abc **"), ["**", "abc **"]);
+		assertArrayIncludes(literalAsteriscksChar("** abc**"), ["**", " abc**"]);
+		assertArrayIncludes(literalAsteriscksChar("*abc*"), [new Error(), "*abc*"]);
+		assertArrayIncludes(literalAsteriscksChar("**abc**"), [new Error(), "**abc**"]);
+	});
+
+	// describe("ItalicText:", () => {
+	// 	assertArrayIncludes(italicText("*abc*"), ["abc", ""]);
+	// 	assertArrayIncludes(italicText("* abc*"), [new Error(), "* abc*"]);
+	// 	assertArrayIncludes(italicText("*abc *"), [new Error(), "*abc *"]);
+	// });
+
+	// describe("BoldText:", () => {
+	// 	assertArrayIncludes(italicText("**abc**"), ["abc", ""]);
+	// 	assertArrayIncludes(italicText("** abc**"), [new Error(), "** abc*"]);
+	// 	assertArrayIncludes(italicText("**abc **"), [new Error(), "*abc *"]);
+	// });
 });

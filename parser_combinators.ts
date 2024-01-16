@@ -59,24 +59,20 @@ export const andNot =
 export const andNot3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<A> =>
 	andNot(parserA, and(parserB, parserC));
 
-// export const andNot3 =
-// 	<A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<A> =>
-// 	input => {
-// 		const [resultA, restA] = parserA(input);
-
-// 		if (isError(resultA)) return [resultA, input];
-
-// 		const [resultB, restB] = parserB(restA);
-
-// 		if (isError(resultB)) return [resultB, input];
-
-// 		const [resultC, restC] = parserC(restB);
-
-// 		return isError(resultC) ? [resultA, restA] : [error("No match. (andNot)"), input];
-// 	};
-
 export const and3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<[A, B, C]> =>
 	map(and(and(parserA, parserB), parserC), ([resultAB, resultC]) => [...resultAB, resultC]);
+
+export const any =
+	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<EmptyString> =>
+	input => {
+		const [resultA, restA] = parserA(input);
+
+		if (!isError(resultA)) return [error("Match. (any)"), input];
+
+		const [resultB, restB] = parserB(input);
+
+		return isError(resultB) ? ["", input] : [error("Matvh. (any)"), restA];
+	};
 
 export const or =
 	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<A | B> =>
