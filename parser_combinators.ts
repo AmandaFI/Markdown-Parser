@@ -51,7 +51,7 @@ export const andNot =
 
 		if (isError(resultA)) return [resultA, input];
 
-		const [resultB, restB] = parserB(restA);
+		const [resultB, _restB] = parserB(restA);
 
 		return isError(resultB) ? [resultA, restA] : [error("No match. (andNot)"), input];
 	};
@@ -69,7 +69,7 @@ export const any =
 
 		if (!isError(resultA)) return [error("Match. (any)"), input];
 
-		const [resultB, restB] = parserB(input);
+		const [resultB, _restB] = parserB(input);
 
 		return isError(resultB) ? ["", input] : [error("Matvh. (any)"), restA];
 	};

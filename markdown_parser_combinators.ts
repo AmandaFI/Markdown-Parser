@@ -10,7 +10,6 @@ import {
 	or,
 	concat,
 	andNot,
-	or6,
 	allButSpecificChars,
 	SPACE,
 	spaceSequence,
