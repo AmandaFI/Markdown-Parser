@@ -256,7 +256,7 @@ describe("Level 2 parsers:", () => {
 describe("Markdown parsers:", () => {
 	describe("TextChars:", () => {
 		it(() => {
-			assertArrayIncludes(textChars("azAZ09!@#$%&()_-+={[]}.,:;|\\//?'"), ["azAZ09!@#$%&()_-+={[]}.,:;|\\//?'", ""]);
+			assertArrayIncludes(textChars("azAZ09!@#$%&()_-+={[]}.,:;|\\?'"), ["azAZ09!@#$%&()_-+={[]}.,:;|\\?'", ""]);
 		});
 		it("No space.", () => {
 			assertArrayIncludes(textChars("ab c"), ["ab", " c"]);
@@ -293,8 +293,11 @@ describe("Markdown parsers:", () => {
 	});
 
 	describe("LiteralSpecialChars:", () => {
-		assertArrayIncludes(literalSpecialChars("\\nabc"), ["\n", "abc"]);
-		assertArrayIncludes(literalSpecialChars("\\tabc"), ["\t", "abc"]);
+		assertArrayIncludes(literalSpecialChars("/\nabc"), ["\n", "abc"]);
+		assertArrayIncludes(literalSpecialChars("/\tabc"), ["\t", "abc"]);
+		assertArrayIncludes(literalSpecialChars("/*abc"), ["*", "abc"]);
+		assertArrayIncludes(literalSpecialChars("//abc"), ["/", "abc"]);
+
 		assertArrayIncludes(literalSpecialChars("\nabc"), [new Error(), "\nabc"]);
 		assertArrayIncludes(literalSpecialChars("\tabc"), [new Error(), "\tabc"]);
 	});

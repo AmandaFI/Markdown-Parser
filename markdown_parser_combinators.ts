@@ -30,16 +30,22 @@ import {
 // primiero o ele tenta dar match com o parserA, caso não de ele se arrepende da decisão, retorna ao ponto
 // de antes de usar o parserA e tenta com o parserB dessa vez, isso consite em backtracking.
 
+const RIGHT_BAR = "/";
 const ASTERISKS = "*";
 
-const LITERAL_LINE_BREAK = "\\n";
-const LITERAL_TAB = "\\t";
+const LITERAL_LINE_BREAK = "/\n";
+const LITERAL_TAB = "/\t";
+const LITERAL_ASTERISKS = "/*";
+const LITERAL_RIGHT_BAR = "//";
 
 const MARKDOWN_LINE_BREAK = "  \n";
 const JUMP_LINE = "\n\n";
 
 const literalLineBreak = specificCharSequence(LITERAL_LINE_BREAK);
 const literalTab = specificCharSequence(LITERAL_TAB);
+const literalAstersisks = specificCharSequence(LITERAL_ASTERISKS);
+const literalRightBar = specificCharSequence(LITERAL_RIGHT_BAR);
+
 const astersisks = specificChar(ASTERISKS);
 
 const markdownLineBreak = and(manyN(space, { min: 2 }), lineBreak);
@@ -66,7 +72,7 @@ const sentenceLineBreak = map(
 	}
 );
 
-export const textChars = concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB, ASTERISKS])));
+export const textChars = concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB, ASTERISKS, RIGHT_BAR])));
 
 const boldIndicator = concat(manyN(astersisks, { min: 2, max: 2 }));
 
@@ -79,9 +85,11 @@ export const textSpace = map(
 	_ => SPACE
 );
 
-export const literalSpecialChars = or(
+export const literalSpecialChars = or4(
 	map(literalLineBreak, _ => LINE_BREAK),
-	map(literalTab, _ => TAB)
+	map(literalTab, _ => TAB),
+	map(literalAstersisks, _ => ASTERISKS),
+	map(literalRightBar, _ => RIGHT_BAR)
 );
 
 export const literalAsteriscksChar = map(
@@ -100,16 +108,37 @@ export const literalAsteriscksChar = map(
 );
 
 // CASO DE TER LITERAL * DENTRO DO BOLD E DO ITALIC
-export const italicText = delimitedBy(
-	astersisks,
-	many1(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars))))),
-	astersisks
+export const italicText = map(
+	delimitedBy(
+		astersisks,
+		many1(and(or(literalSpecialChars, textChars), optional(and(textSpace, or(textChars, literalSpecialChars))))),
+		astersisks
+	),
+	result => {
+		return {
+			type: "Italic" as const,
+			result,
+		};
+	}
 );
 
-export const boldText = delimitedBy(
-	boldIndicator,
-	many1(or(and(textChars, optional(and(textSpace, or(textChars, literalSpecialChars)))), italicText)),
-	boldIndicator
+export const boldText = map(
+	delimitedBy(
+		boldIndicator,
+		many1(
+			or(
+				and(or(literalSpecialChars, textChars), optional(and(textSpace, or3(literalSpecialChars, italicText, textChars)))),
+				italicText
+			)
+		),
+		boldIndicator
+	),
+	result => {
+		return {
+			type: "Bold" as const,
+			result,
+		};
+	}
 );
 
 const rawText = map(concat(many1(or4(literalSpecialChars, literalAsteriscksChar, textChars, textSpace))), result => {
@@ -187,8 +216,18 @@ const heading = map(
 // console.log(italicText("*abc *"));
 
 console.log(boldText("**abc**"));
+
+console.log(boldText("**ab/*c**"));
+console.log(boldText("**ab/\t/*c**"));
+console.log(boldText("**ab	/*c**"));
+console.log(boldText("**ab/*c**"));
+
+console.log(italicText("*ab/* c*"));
+
 console.log(boldText("***abc***"));
 
 // console.log(boldText("** abc**"));
 // console.log(boldText("**abc *"));
 // console.log(boldText("**abc*"));
+console.log(LITERAL_ASTERISKS);
+console.log("*");
