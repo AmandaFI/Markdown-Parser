@@ -24,7 +24,9 @@ import {
 	andNot3,
 	and3,
 	any,
-} from "./parser_combinators.ts";
+} from "./parser_combinators";
+
+
 
 // em um or por exemplo, é possivel ver o backtracking dos parsers. Considerando um or(parserA, parserB),
 // primiero o ele tenta dar match com o parserA, caso não de ele se arrepende da decisão, retorna ao ponto
@@ -161,22 +163,33 @@ const charSequence = many1(or3(literalLineBreak, literalTab, rawText));
 
 // Reveer heading
 const heading = map(
-	and(succeededBy(headingHashSequence, space), succeededBy(textChars, optional(or(jumpLine, lineBreak)))),
+	and(succeededBy(headingHashSequence, optional(space)), succeededBy(many1(and(textChars, manyN(space))), optional(or(jumpLine, lineBreak)))),
 	([hashes, text]) => {
 		return { type: "Heading" as const, hashCount: hashes.quantity, text };
 	}
 );
 
+console.log(heading("##teste"))
+console.log(heading("## teste"))
+console.log(heading("## teste   a"))
+console.log(heading("## teste\nb"))
+console.log(heading("## teste      "))
+
+
+console.log(heading("teste"))
+
+
+
 console.log(boldText("**abc**"));
 
 console.log(boldText("**ab/*c**"));
 console.log(boldText("**ab/\t/*c**"));
-console.log(boldText("**ab	/*c**"));
+console.log(boldText("**ab	/*c**")[0]);
 console.log(boldText("**ab/*c**"));
 
 console.log(italicText("*ab/* c*"));
 
-console.log(boldText("***abc***"));
+console.log(boldText("***abc***")[0]);
 
 // console.log(boldText("** abc**"));
 // console.log(boldText("**abc *"));
