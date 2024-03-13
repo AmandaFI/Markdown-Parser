@@ -99,19 +99,19 @@ export const charsPrecededBySpace = map(and(concat(many1(textSpace)), charsWitho
 export const charsOptionallyPrecededBySpace = map(and(concat(manyN(textSpace)), charsWithoutSpace), ([resultA, resultB]) => resultA.concat(resultB));
 
 
-// testar melhor
-export const literalAsteriscksChar = map(
-	and(
-		any(
-			// and3(boldIndicator, many1(and(textChars, optional(charsPrecededBySpace))), boldIndicator),
-			// and3(asterisk, many1(and(textChars, optional(charsPrecededBySpace))), asterisk)
-			and3(boldIndicator, many1(and(charsWithoutSpace, optional(charsPrecededBySpace))), boldIndicator),
-			and3(asterisk, many1(and(charsWithoutSpace, optional(charsPrecededBySpace))), asterisk)
-		),
-		concat(many1(asterisk))
-	),
-	result => ASTERISK.repeat(result[1].length)
-);
+// não mais necessário
+// export const literalAsteriscksChar = map(
+// 	and(
+// 		any(
+// 			// and3(boldIndicator, many1(and(textChars, optional(charsPrecededBySpace))), boldIndicator),
+// 			// and3(asterisk, many1(and(textChars, optional(charsPrecededBySpace))), asterisk)
+// 			and3(boldIndicator, many1(and(charsWithoutSpace, optional(charsPrecededBySpace))), boldIndicator),
+// 			and3(asterisk, many1(and(charsWithoutSpace, optional(charsPrecededBySpace))), asterisk)
+// 		),
+// 		concat(many1(asterisk))
+// 	),
+// 	result => ASTERISK.repeat(result[1].length)
+// );
 
 export const innerItalicText = map(map(and(charsWithoutSpace, concat(manyN(charsPrecededBySpace))), ([resultA, resultB]) => resultA.concat(resultB)),
 result => {
@@ -183,14 +183,12 @@ export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), resu
 	};
 });
 
-// Para usar caracteres especiais de forma literal deve-se colocar / antes, como mostrado nos literalSpecialChars
 
-export const line = map(and(many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([text, _]) => {
-	return text
-	// return {
-	// 	type: "Line" as const,
-	// 	text,
-	// };
+export const line = map(and(many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([result, _]) => {
+	return {
+		type: "Line" as const,
+		result,
+	};
 });
 const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([lines, _]) => {
 	return {
@@ -198,6 +196,13 @@ const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([lines, _]) 
 		lines,
 	};
 });
+
+const markdownDocument = map(many1(paragraph), result => {
+	return {
+		type: "Document",
+		result
+	}
+})
 
 const charSequence = many1(or3(literalLineBreak, literalTab, rawText));
 
@@ -209,21 +214,31 @@ const heading = map(
 	}
 );
 
-// console.log(heading("##teste"))
-// console.log(heading("## teste"))
-// console.log(heading("## teste   a"))
-// console.log(heading("## teste\nb"))
-// console.log(heading("## teste      "))
+// -----------------------------------------------------------------------------------------
+
+// Obs:
+
+// Para usar caracteres especiais de forma literal deve-se colocar / antes, como mostrado nos literalSpecialChars
+// para mudar de ideia teria que reativar o literalAsteriscksChar e incluir em todos os parsers de Text (bold, italic, raw)
+
+// o paragrafo entende que é para pular de linha ois havera 2 ou mais \n, o primeiro vira no final de uma line
+// e sera lido pelo parser de line, o segundo e os demais serão lidos pelo parser de paragraph
+
+// um parágrafo é formado por várias linhas que são formadas pela combinação de textos em negrito, itálico e normal
+
+// um documento markdown será formado por vários dos elementos markdown como parágrafos e headings
+
+// TODO
+
+// - Criar testes para os parsers de linha e parágrafo
+// -  Criar tipos para os retornos dos maps mais importantes para remover o as const
+// - Iniciar o script que le a ast/objeto construido e gera o html
+// - Revisar elemento heading
+// - Implementar outros elementos como listas
+
+// -----------------------------------------------------------------------------------------
 
 
-// console.log(heading("teste"))
-
-
-
-// console.log(boldText("**abc**"));
-
-// console.log(boldText("**ab/*c**"));
-// console.log(boldText("**ab/\t/*c**"));
 // console.log(boldText("**ab	/*c**")[0]);
 // console.log(boldText("**ab/*c**"));
 
@@ -272,7 +287,9 @@ const heading = map(
 // console.log(line("*teste* **teste2** abcd  cdc /*  \n"))
 // console.log(line("*teste* **teste2** abcd  cdc /*  fasfsae"))
 
-// console.log(paragraph("*teste* **teste2** abcd  cdc /*  \n*teste* **teste2** abcd  cdc /*  \n"))
+// console.log(paragraph("*teste* **teste2** abcd  cdc /*  \n*teste* **teste2** abcd  cdc /*  \n\n\n*teste* **teste2** abcd  cdc /*  \n*teste* **teste2** abcd  cdc /*"))
+
+// console.log(markdownDocument("*teste* **teste2** abcd  cdc /*  \n*teste* **teste2** abcd  cdc /*  \n\n\n*teste* **teste2** abcd  cdc /*  \n*teste* **teste2** abcd  cdc /*"))
 
 
 

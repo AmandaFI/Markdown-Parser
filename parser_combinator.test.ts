@@ -27,7 +27,7 @@ import {
 	andNot3,
 } from "./parser_combinators.ts";
 
-import { boldText, italicText, literalAsteriscksChar, literalSpecialChars, textChars, textSpace, rawText } from "./markdown_parser_combinators.ts";
+import { boldText, italicText, literalSpecialChars, textChars, textSpace, rawText } from "./markdown_parser_combinators.ts";
 
 describe("Level 1 parsers:", () => {
 	const parserA = satisfy(char => char === "a");
@@ -302,17 +302,17 @@ describe("Markdown parsers:", () => {
 		assertArrayIncludes(literalSpecialChars("\tabc"), [new Error(), "\tabc"]);
 	});
 
-	describe("LiteralAsteriscksChar:", () => {
-		assertArrayIncludes(literalAsteriscksChar("*abc"), ["*", "abc"]);
-		assertArrayIncludes(literalAsteriscksChar("* abc"), ["*", " abc"]);
-		assertArrayIncludes(literalAsteriscksChar("**abc"), ["**", "abc"]);
-		assertArrayIncludes(literalAsteriscksChar("** abc"), ["**", " abc"]);
-		assertArrayIncludes(literalAsteriscksChar("**abc*"), ["**", "abc*"]);
-		assertArrayIncludes(literalAsteriscksChar("**abc **"), ["**", "abc **"]);
-		assertArrayIncludes(literalAsteriscksChar("** abc**"), ["**", " abc**"]);
-		assertArrayIncludes(literalAsteriscksChar("*abc*"), [new Error(), "*abc*"]);
-		assertArrayIncludes(literalAsteriscksChar("**abc**"), [new Error(), "**abc**"]);
-	});
+	// describe("LiteralAsteriscksChar:", () => {
+	// 	assertArrayIncludes(literalAsteriscksChar("*abc"), ["*", "abc"]);
+	// 	assertArrayIncludes(literalAsteriscksChar("* abc"), ["*", " abc"]);
+	// 	assertArrayIncludes(literalAsteriscksChar("**abc"), ["**", "abc"]);
+	// 	assertArrayIncludes(literalAsteriscksChar("** abc"), ["**", " abc"]);
+	// 	assertArrayIncludes(literalAsteriscksChar("**abc*"), ["**", "abc*"]);
+	// 	assertArrayIncludes(literalAsteriscksChar("**abc **"), ["**", "abc **"]);
+	// 	assertArrayIncludes(literalAsteriscksChar("** abc**"), ["**", " abc**"]);
+	// 	assertArrayIncludes(literalAsteriscksChar("*abc*"), [new Error(), "*abc*"]);
+	// 	assertArrayIncludes(literalAsteriscksChar("**abc**"), [new Error(), "**abc**"]);
+	// });
 
 	describe("RawText:", () => {
 		assertArrayIncludes(rawText("abc  ef /*"), [{
@@ -367,6 +367,19 @@ describe("Markdown parsers:", () => {
 				{
 					type: "Text",
 					result: "  c",
+				}
+			],
+		}, ""]);
+		assertArrayIncludes(boldText("**ab/\t/*c**"), [{
+			type: "Bold",
+			result: [
+				{
+					type: "Text",
+					result: "ab",
+				},
+				{
+					type: "Text",
+					result: "\t*c",
 				}
 			],
 		}, ""]);
