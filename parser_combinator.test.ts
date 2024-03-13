@@ -1,4 +1,4 @@
-import { assertEquals, assertArrayIncludes, assertThrows } from "https://deno.land/std@0.212.0/assert/mod.ts";
+import { assertEquals, assertArrayIncludes, assertThrows, assertObjectMatch } from "https://deno.land/std@0.212.0/assert/mod.ts";
 import { afterEach, beforeEach, describe, it, beforeAll } from "https://deno.land/std@0.201.0/testing/bdd.ts";
 import {
 	satisfy,
@@ -27,7 +27,7 @@ import {
 	andNot3,
 } from "./parser_combinators.ts";
 
-import { italicText, literalAsteriscksChar, literalSpecialChars, textChars, textSpace } from "./markdown_parser_combinators.ts";
+import { boldText, italicText, literalAsteriscksChar, literalSpecialChars, textChars, textSpace } from "./markdown_parser_combinators.ts";
 
 describe("Level 1 parsers:", () => {
 	const parserA = satisfy(char => char === "a");
@@ -314,15 +314,51 @@ describe("Markdown parsers:", () => {
 		assertArrayIncludes(literalAsteriscksChar("**abc**"), [new Error(), "**abc**"]);
 	});
 
-	// describe("ItalicText:", () => {
-	// 	assertArrayIncludes(italicText("*abc*"), ["abc", ""]);
-	// 	assertArrayIncludes(italicText("* abc*"), [new Error(), "* abc*"]);
-	// 	assertArrayIncludes(italicText("*abc *"), [new Error(), "*abc *"]);
-	// });
+	describe("ItalicText:", () => {
+		assertArrayIncludes(italicText("*abc*"), [{
+			type: "Italic",
+			result: {
+				type: "Text",
+				result: "abc",
+			},
+		}, ""]);
+		assertArrayIncludes(italicText("* abc*"), [new Error(), "* abc*"]);
+		assertArrayIncludes(italicText("*abc *"), [new Error(), "*abc *"]);
+		assertArrayIncludes(italicText("* abc *"), [new Error(), "* abc *"]);
 
-	// describe("BoldText:", () => {
-	// 	assertArrayIncludes(italicText("**abc**"), ["abc", ""]);
-	// 	assertArrayIncludes(italicText("** abc**"), [new Error(), "** abc*"]);
-	// 	assertArrayIncludes(italicText("**abc **"), [new Error(), "*abc *"]);
-	// });
+	});
+
+	describe("BoldText:", () => {
+		assertArrayIncludes(boldText("**abc**"), [{
+			type: "Bold",
+			result: [{
+				type: "Text",
+				result: "abc",
+			}],
+		}, ""]);
+		assertArrayIncludes(boldText("**a  *b*  c**"), [{
+			type: "Bold",
+			result: [
+				{
+					type: "Text",
+					result: "a",
+				},
+				{
+					type: "Italic",
+					result: {
+						type: "Text",
+						result: "  b",
+					},
+				},
+				{
+					type: "Text",
+					result: "  c",
+				}
+			],
+		}, ""]);
+		assertArrayIncludes(boldText("** abc**"), [new Error(), "** abc**"]);
+		assertArrayIncludes(boldText("**abc **"), [new Error(), "**abc **"]);
+		assertArrayIncludes(boldText("** abc **"), [new Error(), "** abc **"]);
+
+	});
 });

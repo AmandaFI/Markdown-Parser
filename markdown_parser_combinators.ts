@@ -95,7 +95,9 @@ export const literalSpecialChars = or4(
 );
 
 export const charsWithoutSpace = or(literalSpecialChars, textChars);
-export const charsPrecededBySpace = map(and(textSpace, charsWithoutSpace), ([resultA, resultB]) => resultA.concat(resultB));
+export const charsPrecededBySpace = map(and(concat(many1(textSpace)), charsWithoutSpace), ([resultA, resultB]) => resultA.concat(resultB));
+export const charsOptionallyPrecededBySpace = map(and(concat(manyN(textSpace)), charsWithoutSpace), ([resultA, resultB]) => resultA.concat(resultB));
+
 
 // testar melhor
 export const literalAsteriscksChar = map(
@@ -111,22 +113,16 @@ export const literalAsteriscksChar = map(
 	result => ASTERISK.repeat(result[1].length)
 );
 
-export const innerItalicText = map(map(and(charsWithoutSpace, optional(concat(manyN(charsPrecededBySpace)))), ([resultA, resultB]) => resultA.concat(resultB)),
-res => {
+export const innerItalicText = map(map(and(charsWithoutSpace, concat(manyN(charsPrecededBySpace))), ([resultA, resultB]) => resultA.concat(resultB)),
+result => {
 	return {
 		type: "Text" as const,
-		result: res
+		result
 	}
 }
 )
 
-export const italicText = map(
-	delimitedBy(
-		asterisk,
-		innerItalicText,
-		asterisk
-	),
-	result => {
+export const italicText = map(delimitedBy(asterisk, innerItalicText, asterisk), result => {
 		return {
 			type: "Italic" as const,
 			result,
@@ -134,29 +130,43 @@ export const italicText = map(
 	}
 );
 
-export const boldText = map(
-	delimitedBy(
-		boldIndicator,
-		many1(
-			or(
-				and(
-					charsWithoutSpace,
-					manyN(
-						
-						and(
-							textSpace, 
-							or3(
-								literalSpecialChars,
-								italicText,
-								textChars
-						)
-					))
-				), 
-				italicText
-			)
+export const innerBoldText = map(
+	and(
+		or(
+			map(charsWithoutSpace, result => {
+				return {
+					type: "Text" as const,
+					result
+				}
+			}),
+			italicText
 		),
-		boldIndicator
+		manyN(
+			or(
+				map(concat(many1(charsOptionallyPrecededBySpace)), result => {
+					return {
+						type: "Text" as const,
+						result
+					}
+				}), 
+				map(and(optional(concat(manyN(textSpace))), italicText), ([resultA, resultB]) => {
+					return {
+						type: "Italic" as const,
+						result: {
+							type: "Text",
+							result: resultA.concat(resultB.result.result)
+						}
+					}
+				})
+			)
+		)
 	),
+	result => result.flat()
+)
+
+
+
+export const boldText = map(delimitedBy(boldIndicator, innerBoldText, boldIndicator),
 	result => {
 		return {
 			type: "Bold" as const,
@@ -223,16 +233,31 @@ const heading = map(
 // // console.log(boldText("**abc*"));
 // console.log(LITERAL_ASTERISK);
 // console.log("*");
-// console.log(italicText("*acd cd d hh*"))
+// console.log(italicText("*acd cd    d hh*")) 
+// console.log(italicText("*acd*"))
 
 
-// console.log(boldText("**a *b* c**"))
+// console.log(innerBoldText2("abc"))
+// console.log(innerBoldText2("a    b c"))
+// console.log(innerBoldText2("a *b*c"))
+// console.log(innerBoldText2("a *b* c"))
+
+
+
+
+// console.log(boldText("**a  bdgcd d *c v b* cded d**"))
 // console.log(boldText("**a**"))
+
+
+// console.log(boldText("**a    b**"))
+
 // console.log(boldText("**a*b*c**"))
+
+console.log(boldText("**a*b*c**"))
 
 // console.log(boldText("**a *b* c **"))
 // console.log(boldText("** a *b* c**"))
 
 // console.log(and(charsWithoutSpace, manyN(optional(charsPrecededBySpace)))("abcd ef dcdc"))
-console.log(map(and(charsWithoutSpace, optional(concat(manyN(charsPrecededBySpace)))), ([resultA, resultB]) => resultA.concat(resultB))("abcd ef dcdc"))
+// console.log(map(and(charsWithoutSpace, optional(concat(manyN(charsPrecededBySpace)))), ([resultA, resultB]) => resultA.concat(resultB))("abcd ef dcdc"))
 
