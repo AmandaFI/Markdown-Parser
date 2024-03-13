@@ -27,7 +27,7 @@ import {
 	andNot3,
 } from "./parser_combinators.ts";
 
-import { boldText, italicText, literalAsteriscksChar, literalSpecialChars, textChars, textSpace } from "./markdown_parser_combinators.ts";
+import { boldText, italicText, literalAsteriscksChar, literalSpecialChars, textChars, textSpace, rawText } from "./markdown_parser_combinators.ts";
 
 describe("Level 1 parsers:", () => {
 	const parserA = satisfy(char => char === "a");
@@ -312,6 +312,20 @@ describe("Markdown parsers:", () => {
 		assertArrayIncludes(literalAsteriscksChar("** abc**"), ["**", " abc**"]);
 		assertArrayIncludes(literalAsteriscksChar("*abc*"), [new Error(), "*abc*"]);
 		assertArrayIncludes(literalAsteriscksChar("**abc**"), [new Error(), "**abc**"]);
+	});
+
+	describe("RawText:", () => {
+		assertArrayIncludes(rawText("abc  ef /*"), [{
+			type: "Raw",
+			result: {
+				type: "Text",
+				result: "abc  ef *",
+			},
+		}, ""]);
+		assertArrayIncludes(rawText("*abc*"), [new Error(), "*abc*"]);
+		assertArrayIncludes(rawText("**abc**"), [new Error(), "**abc**"]);
+		assertArrayIncludes(rawText("*"), [new Error(), "*"]);
+
 	});
 
 	describe("ItalicText:", () => {

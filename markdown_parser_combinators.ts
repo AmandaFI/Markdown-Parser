@@ -164,8 +164,6 @@ export const innerBoldText = map(
 	result => result.flat()
 )
 
-
-
 export const boldText = map(delimitedBy(boldIndicator, innerBoldText, boldIndicator),
 	result => {
 		return {
@@ -175,19 +173,24 @@ export const boldText = map(delimitedBy(boldIndicator, innerBoldText, boldIndica
 	}
 );
 
-const rawText = map(concat(many1(or4(literalSpecialChars, literalAsteriscksChar, textChars, textSpace))), result => {
-	return result;
-	// return {
-	// 	type: "raw",
-	// 	text,
-	// };
+export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), result => {
+	return {
+		type: "Raw" as const,
+		result: {
+			type: "Text" as const,
+			result
+		},
+	};
 });
 
-const line = map(and(many1(or(boldText, rawText)), sentenceLineBreak), ([text, _]) => {
-	return {
-		type: "Line" as const,
-		text,
-	};
+// Para usar caracteres especiais de forma literal deve-se colocar / antes, como mostrado nos literalSpecialChars
+
+export const line = map(and(many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([text, _]) => {
+	return text
+	// return {
+	// 	type: "Line" as const,
+	// 	text,
+	// };
 });
 const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([lines, _]) => {
 	return {
@@ -253,11 +256,24 @@ const heading = map(
 
 // console.log(boldText("**a*b*c**"))
 
-console.log(boldText("**a*b*c**"))
+// console.log(boldText("**a*b*c**"))
 
 // console.log(boldText("**a *b* c **"))
 // console.log(boldText("** a *b* c**"))
 
 // console.log(and(charsWithoutSpace, manyN(optional(charsPrecededBySpace)))("abcd ef dcdc"))
 // console.log(map(and(charsWithoutSpace, optional(concat(manyN(charsPrecededBySpace)))), ([resultA, resultB]) => resultA.concat(resultB))("abcd ef dcdc"))
+
+
+// console.log(rawText("abcd  cdc /*"))
+// console.log(rawText("**a**"))
+// console.log(rawText("*a*"))
+
+// console.log(line("*teste* **teste2** abcd  cdc /*  \n"))
+// console.log(line("*teste* **teste2** abcd  cdc /*  fasfsae"))
+
+// console.log(paragraph("*teste* **teste2** abcd  cdc /*  \n*teste* **teste2** abcd  cdc /*  \n"))
+
+
+
 
