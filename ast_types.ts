@@ -34,10 +34,10 @@ export type Paragraph = {
 	result: Array<Line>
 }
 
-export type Document = {
+export type HtmlDocument = {
 	type: "Document",
 	result: Array<Paragraph>
 }
 
 
-export type PartType = Text | Raw | Italic | Bold | Line | Paragraph | Document
+export type PartType = Text | Raw | Italic | Bold | Line | Paragraph | HtmlDocument

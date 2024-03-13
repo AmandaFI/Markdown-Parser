@@ -1,4 +1,4 @@
-import { PartType } from "./ast_types.ts";
+import { Bold, HtmlDocument, Italic, Line, Paragraph, PartType, Raw, Text } from "./ast_types.ts";
 import {
 	and,
 	map,
@@ -115,17 +115,17 @@ export const charsOptionallyPrecededBySpace = map(and(concat(manyN(textSpace)), 
 // );
 
 export const innerItalicText = map(map(and(charsWithoutSpace, concat(manyN(charsPrecededBySpace))), ([resultA, resultB]) => resultA.concat(resultB)),
-result => {
+(result): Text => {
 	return {
-		type: "Text" as const,
+		type: "Text",
 		result
 	}
 }
 )
 
-export const italicText = map(delimitedBy(asterisk, innerItalicText, asterisk), result => {
+export const italicText = map(delimitedBy(asterisk, innerItalicText, asterisk), (result): Italic => {
 		return {
-			type: "Italic" as const,
+			type: "Italic",
 			result,
 		};
 	}
@@ -134,9 +134,9 @@ export const italicText = map(delimitedBy(asterisk, innerItalicText, asterisk), 
 export const innerBoldText = map(
 	and(
 		or(
-			map(charsWithoutSpace, result => {
+			map(charsWithoutSpace, (result): Text => {
 				return {
-					type: "Text" as const,
+					type: "Text",
 					result
 				}
 			}),
@@ -144,17 +144,17 @@ export const innerBoldText = map(
 		),
 		manyN(
 			or(
-				map(concat(many1(charsOptionallyPrecededBySpace)), result => {
+				map(concat(many1(charsOptionallyPrecededBySpace)), (result): Text => {
 					return {
-						type: "Text" as const,
+						type: "Text",
 						result
 					}
 				}), 
-				map(and(optional(concat(manyN(textSpace))), italicText), ([resultA, resultB]) => {
+				map(and(optional(concat(manyN(textSpace))), italicText), ([resultA, resultB]): Italic => {
 					return {
-						type: "Italic" as const,
+						type: "Italic",
 						result: {
-							type: "Text" as const,
+							type: "Text",
 							result: resultA.concat(resultB.result.result)
 						}
 					}
@@ -166,41 +166,41 @@ export const innerBoldText = map(
 )
 
 export const boldText = map(delimitedBy(boldIndicator, innerBoldText, boldIndicator),
-	result => {
+	(result): Bold => {
 		return {
-			type: "Bold" as const,
+			type: "Bold",
 			result,
 		};
 	}
 );
 
-export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), result => {
+export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), (result): Raw => {
 	return {
-		type: "Raw" as const,
+		type: "Raw",
 		result: {
-			type: "Text" as const,
+			type: "Text",
 			result
 		},
 	};
 });
 
 
-export const line = map(and(many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([result, _]) => {
+export const line = map(and(many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([result, _]): Line => {
 	return {
-		type: "Line" as const,
+		type: "Line",
 		result,
 	};
 });
-export const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([result, _]) => {
+export const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([result, _]): Paragraph => {
 	return {
-		type: "Paragraph" as const,
+		type: "Paragraph",
 		result,
 	};
 });
 
-export const markdownDocument = map(many1(paragraph), result => {
+export const markdownDocument = map(many1(paragraph), (result): HtmlDocument => {
 	return {
-		type: "Document" as const,
+		type: "Document",
 		result
 	}
 })
