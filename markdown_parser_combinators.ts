@@ -1,3 +1,4 @@
+import { Part, PartType } from "./ast_types.ts";
 import {
 	and,
 	map,
@@ -153,7 +154,7 @@ export const innerBoldText = map(
 					return {
 						type: "Italic" as const,
 						result: {
-							type: "Text",
+							type: "Text" as const,
 							result: resultA.concat(resultB.result.result)
 						}
 					}
@@ -173,7 +174,7 @@ export const boldText = map(delimitedBy(boldIndicator, innerBoldText, boldIndica
 	}
 );
 
-export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), result => {
+export const rawText: Part = map(concat(many1(or(charsWithoutSpace, textSpace))), result => {
 	return {
 		type: "Raw" as const,
 		result: {
@@ -190,16 +191,16 @@ export const line = map(and(many1(or3(boldText, italicText, rawText)), optional(
 		result,
 	};
 });
-const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([lines, _]) => {
+export const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([result, _]) => {
 	return {
 		type: "Paragraph" as const,
-		lines,
+		result,
 	};
 });
 
-const markdownDocument = map(many1(paragraph), result => {
+export const markdownDocument = map(many1(paragraph), result => {
 	return {
-		type: "Document",
+		type: "Document" as const,
 		result
 	}
 })
