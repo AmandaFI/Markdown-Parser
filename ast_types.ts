@@ -1,9 +1,3 @@
-export type Heading = {
-	type: "Heading";
-	hashCount: number;
-	text: string;
-};
-
 export type Text = {
 	type: "Text",
 	result: string
@@ -34,10 +28,16 @@ export type Paragraph = {
 	result: Array<Line>
 }
 
+export type Heading = {
+	type: "Heading";
+	hashCount: number;
+	result: Text;
+};
+
 export type HtmlDocument = {
 	type: "Document",
-	result: Array<Paragraph>
+	result: Array<Heading | Paragraph>
 }
 
 
-export type PartType = Text | Raw | Italic | Bold | Line | Paragraph | HtmlDocument
+export type PartType = Text | Raw | Italic | Bold | Line | Paragraph | HtmlDocument | Heading

@@ -21,16 +21,18 @@ const parseAst = (part: PartType): string => {
   switch (part.type) {
     case "Document":
       return part.result.reduce((acc, element) => acc.concat(parseAst(element)), "");
+    case "Heading":
+      return `<h${part.hashCount.toString()}>${parseAst(part.result)}</h${part.hashCount.toString()}>`
     case "Paragraph":
-      return typeof part.result === "string" ? part.result : `<p>${part.result.reduce((acc: string, el) => acc.concat(parseAst(el)), "")}</p>`
+      return `<p>${part.result.reduce((acc: string, el) => acc.concat(parseAst(el)), "")}</p>`
     case "Line":
-      return typeof part.result === "string" ? part.result : `${part.result.reduce((acc: string, el) => acc.concat(parseAst(el)), "")}<br/>`
+      return `${part.result.reduce((acc: string, el) => acc.concat(parseAst(el)), "")}<br/>`
     case "Bold":
       return `<b>${part.result.reduce((acc: string, el) => acc.concat(parseAst(el)), "")}</b>`
     case "Italic":
       return `<i>${parseAst(part.result)}</i>`
     case "Raw":
-      return part.result.result
+      return parseAst(part.result)
     case "Text":
       return part.result
   }

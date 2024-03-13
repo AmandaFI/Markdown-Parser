@@ -1,4 +1,4 @@
-import { Bold, HtmlDocument, Italic, Line, Paragraph, PartType, Raw, Text } from "./ast_types.ts";
+import { Bold, Heading, HtmlDocument, Italic, Line, Paragraph, PartType, Raw, Text } from "./ast_types.ts";
 import {
 	and,
 	map,
@@ -50,6 +50,7 @@ const literalTab = specificCharSequence(LITERAL_TAB);
 const literalAsterisk = specificCharSequence(LITERAL_ASTERISK);
 const literalRightBar = specificCharSequence(LITERAL_RIGHT_BAR);
 const asterisk = specificChar(ASTERISK);
+const hash = specificChar("#")
 
 const markdownLineBreak = and(manyN(space, { min: 2 }), lineBreak);
 
@@ -59,7 +60,7 @@ const jumpLine = map(many1(lineBreak), result => {
 	};
 });
 
-const headingHashSequence = map(many1(specificChar("#"), 6), result => {
+const headingHashSequence = map(many1(hash, 6), result => {
 	return {
 		type: "Hash",
 		quantity: result.length,
@@ -198,7 +199,34 @@ export const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([resu
 	};
 });
 
-export const markdownDocument = map(many1(paragraph), (result): HtmlDocument => {
+export const heading = map(
+	and(
+		succeededBy(
+			andNot(headingHashSequence, many1(hash)), 
+			optional(manyN(space))
+		), 
+		succeededBy(
+			concat(many1(
+				map(and(
+					textChars,
+					concat(manyN(space))
+				), ([resultA, resultB]) => resultA.concat(resultB))
+			)),
+			optional(
+				or(jumpLine, lineBreak)))),
+	([hashes, text]): Heading => {
+		return {
+			type: "Heading",
+			hashCount: hashes.quantity,
+			result: {
+				type: "Text",
+				result: text
+			}
+		}
+	}
+);
+
+export const markdownDocument = map(many1(or(heading, paragraph)), (result): HtmlDocument => {
 	return {
 		type: "Document",
 		result
@@ -208,12 +236,7 @@ export const markdownDocument = map(many1(paragraph), (result): HtmlDocument => 
 const charSequence = many1(or3(literalLineBreak, literalTab, rawText));
 
 // Reveer heading
-const heading = map(
-	and(succeededBy(headingHashSequence, optional(space)), succeededBy(many1(and(textChars, manyN(space))), optional(or(jumpLine, lineBreak)))),
-	([hashes, text]) => {
-		return { type: "Heading" as const, hashCount: hashes.quantity, text };
-	}
-);
+
 
 // -----------------------------------------------------------------------------------------
 
@@ -294,4 +317,7 @@ const heading = map(
 
 
 
-
+// console.log(heading("titulo um"))
+// console.log(heading("### titulo um"))
+// console.log(heading("######titulo um"))
+// console.log(heading("### titulo um\nfasefas"))
