@@ -24,7 +24,8 @@ import {
 	andNot3,
 	and3,
 	any,
-} from "./parser_combinators";
+} from "./parser_combinators.ts";
+// remove .ts to run using vscode terminal e add .ts to run on normal terminal
 
 
 
@@ -110,10 +111,19 @@ export const literalAsteriscksChar = map(
 	result => ASTERISK.repeat(result[1].length)
 );
 
+export const innerItalicText = map(map(and(charsWithoutSpace, optional(concat(manyN(charsPrecededBySpace)))), ([resultA, resultB]) => resultA.concat(resultB)),
+res => {
+	return {
+		type: "Text" as const,
+		result: res
+	}
+}
+)
+
 export const italicText = map(
 	delimitedBy(
 		asterisk,
-		many1(map(and(charsWithoutSpace, optional(charsPrecededBySpace)), ([resultA, resultB]) => resultA.concat(resultB))),
+		innerItalicText,
 		asterisk
 	),
 	result => {
@@ -127,7 +137,24 @@ export const italicText = map(
 export const boldText = map(
 	delimitedBy(
 		boldIndicator,
-		many1(or(and(charsWithoutSpace, optional(and(textSpace, or3(literalSpecialChars, italicText, textChars)))), italicText)),
+		many1(
+			or(
+				and(
+					charsWithoutSpace,
+					manyN(
+						
+						and(
+							textSpace, 
+							or3(
+								literalSpecialChars,
+								italicText,
+								textChars
+						)
+					))
+				), 
+				italicText
+			)
+		),
 		boldIndicator
 	),
 	result => {
@@ -169,30 +196,43 @@ const heading = map(
 	}
 );
 
-console.log(heading("##teste"))
-console.log(heading("## teste"))
-console.log(heading("## teste   a"))
-console.log(heading("## teste\nb"))
-console.log(heading("## teste      "))
+// console.log(heading("##teste"))
+// console.log(heading("## teste"))
+// console.log(heading("## teste   a"))
+// console.log(heading("## teste\nb"))
+// console.log(heading("## teste      "))
 
 
-console.log(heading("teste"))
+// console.log(heading("teste"))
 
 
 
-console.log(boldText("**abc**"));
+// console.log(boldText("**abc**"));
 
-console.log(boldText("**ab/*c**"));
-console.log(boldText("**ab/\t/*c**"));
-console.log(boldText("**ab	/*c**")[0]);
-console.log(boldText("**ab/*c**"));
+// console.log(boldText("**ab/*c**"));
+// console.log(boldText("**ab/\t/*c**"));
+// console.log(boldText("**ab	/*c**")[0]);
+// console.log(boldText("**ab/*c**"));
 
-console.log(italicText("*ab/* c*"));
+// console.log(italicText("*ab/* c*"));
 
-console.log(boldText("***abc***")[0]);
+// console.log(boldText("***abc***")[0]);
 
-// console.log(boldText("** abc**"));
-// console.log(boldText("**abc *"));
-// console.log(boldText("**abc*"));
-console.log(LITERAL_ASTERISK);
-console.log("*");
+// // console.log(boldText("** abc**"));
+// // console.log(boldText("**abc *"));
+// // console.log(boldText("**abc*"));
+// console.log(LITERAL_ASTERISK);
+// console.log("*");
+// console.log(italicText("*acd cd d hh*"))
+
+
+// console.log(boldText("**a *b* c**"))
+// console.log(boldText("**a**"))
+// console.log(boldText("**a*b*c**"))
+
+// console.log(boldText("**a *b* c **"))
+// console.log(boldText("** a *b* c**"))
+
+// console.log(and(charsWithoutSpace, manyN(optional(charsPrecededBySpace)))("abcd ef dcdc"))
+console.log(map(and(charsWithoutSpace, optional(concat(manyN(charsPrecededBySpace)))), ([resultA, resultB]) => resultA.concat(resultB))("abcd ef dcdc"))
+
