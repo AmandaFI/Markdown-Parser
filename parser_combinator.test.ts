@@ -29,6 +29,8 @@ import {
 
 import { boldText, italicText, literalSpecialChars, textChars, textSpace, rawText } from "./markdown_parser_combinators.ts";
 
+// deno test parser_combinator.test.ts
+
 describe("Level 1 parsers:", () => {
 	const parserA = satisfy(char => char === "a");
 	const parserB = satisfy(char => char === "b");

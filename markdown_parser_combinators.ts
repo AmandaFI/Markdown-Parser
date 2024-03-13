@@ -1,4 +1,4 @@
-import { Part, PartType } from "./ast_types.ts";
+import { PartType } from "./ast_types.ts";
 import {
 	and,
 	map,
@@ -174,7 +174,7 @@ export const boldText = map(delimitedBy(boldIndicator, innerBoldText, boldIndica
 	}
 );
 
-export const rawText: Part = map(concat(many1(or(charsWithoutSpace, textSpace))), result => {
+export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), result => {
 	return {
 		type: "Raw" as const,
 		result: {

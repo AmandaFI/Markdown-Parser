@@ -11,7 +11,11 @@ import { markdownDocument } from "./markdown_parser_combinators.ts";
 
 const text = await Deno.readTextFile("./content.txt");
 
-const buildAst = (text: string) =>  markdownDocument(text)[0]
+const buildAst = (text: string) => {
+  const ast = markdownDocument(text)[0]
+  if (ast instanceof Error) throw new Error("Invalid markdown sintax. Unable to interpret.")
+  return ast
+}
 
 const parseAst = (part: PartType): string => {
   switch (part.type) {
@@ -35,11 +39,8 @@ const parseAst = (part: PartType): string => {
 const ast = buildAst(text)
 // console.log(ast)
 
-if (ast instanceof Error) console.log("Error")
-else {
-  console.log("Parsing...")
-  const html = parseAst(ast)
-  await Deno.writeTextFile("./result.html", html);
-  console.log("Done")
-}
+console.log("Parsing...")
+const html = parseAst(ast)
+await Deno.writeTextFile("./result.html", html);
+console.log("Done")
 
