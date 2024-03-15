@@ -1,4 +1,4 @@
-import { Bold, Heading, HtmlDocument, Italic, Line, Paragraph, PartType, Raw, Text } from "./ast_types.ts";
+import { Bold, Heading, HtmlDocument, Italic, Line, ListItemLine, Paragraph, Text, UnorderedList, UnorderedListItem } from "./ast_types.ts";
 import {
 	and,
 	map,
@@ -25,6 +25,10 @@ import {
 	andNot3,
 	and3,
 	any,
+	precededBy,
+	or5,
+	allButSpecificChar,
+	not,
 } from "./parser_combinators.ts";
 // remove .ts to run using vscode terminal e add .ts to run on normal terminal
 
@@ -41,6 +45,9 @@ const LITERAL_LINE_BREAK = "/\n";
 const LITERAL_TAB = "/\t";
 const LITERAL_ASTERISK = "/*";
 const LITERAL_RIGHT_BAR = "//";
+const LITERAL_MINUS_SIGN = "/-"
+const HASH = "#"
+const MINUS_SIGN = "-"
 
 const MARKDOWN_LINE_BREAK = "  \n";
 const JUMP_LINE = "\n\n";
@@ -49,8 +56,12 @@ const literalLineBreak = specificCharSequence(LITERAL_LINE_BREAK);
 const literalTab = specificCharSequence(LITERAL_TAB);
 const literalAsterisk = specificCharSequence(LITERAL_ASTERISK);
 const literalRightBar = specificCharSequence(LITERAL_RIGHT_BAR);
+const literalMinusSign = specificCharSequence(LITERAL_MINUS_SIGN);
 const asterisk = specificChar(ASTERISK);
-const hash = specificChar("#")
+const hash = specificChar(HASH)
+const minusSign = specificChar(MINUS_SIGN)
+
+const normalLineBreak = specificChar(LINE_BREAK)
 
 const markdownLineBreak = and(manyN(space, { min: 2 }), lineBreak);
 
@@ -68,7 +79,7 @@ const headingHashSequence = map(many1(hash, 6), result => {
 });
 
 const sentenceLineBreak = map(
-	or3(and(concat(manyN(space, { min: 2 })), lineBreak), and(tabSequence, lineBreak), manyN(lineBreak, { min: 2 })),
+	or(and(concat(manyN(space, { min: 2 })), lineBreak), and(tabSequence, lineBreak)),
 	result => {
 		return {
 			type: "LineBreak",
@@ -89,16 +100,21 @@ export const textSpace = map(
 	_ => SPACE
 );
 
-export const literalSpecialChars = or4(
+export const normalSpace = specificChar(SPACE)
+
+export const literalSpecialChars = or5(
 	map(literalLineBreak, _ => LINE_BREAK),
 	map(literalTab, _ => TAB),
 	map(literalAsterisk, _ => ASTERISK),
-	map(literalRightBar, _ => RIGHT_BAR)
+	map(literalRightBar, _ => RIGHT_BAR),
+	map(literalMinusSign, _ => MINUS_SIGN)
 );
 
 export const charsWithoutSpace = or(literalSpecialChars, textChars);
 export const charsPrecededBySpace = map(and(concat(many1(textSpace)), charsWithoutSpace), ([resultA, resultB]) => resultA.concat(resultB));
 export const charsOptionallyPrecededBySpace = map(and(concat(manyN(textSpace)), charsWithoutSpace), ([resultA, resultB]) => resultA.concat(resultB));
+
+
 
 
 // não mais necessário
@@ -175,24 +191,24 @@ export const boldText = map(delimitedBy(boldIndicator, innerBoldText, boldIndica
 	}
 );
 
-export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), (result): Raw => {
+export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), (result): Text => {
 	return {
-		type: "Raw",
-		result: {
-			type: "Text",
-			result
-		},
+		type: "Text",
+		result
 	};
 });
 
 
-export const line = map(and(many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([result, _]): Line => {
+export const line = map(and3(not(or(minusSign, lineBreak)), many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([_, result, __]): Line => {
 	return {
 		type: "Line",
-		result,
+		result
 	};
 });
+
 export const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([result, _]): Paragraph => {
+// export const paragraph = map(precededBy(optional(many1(jumpLine)), and(many1(line), optional(jumpLine))), ([result, _]): Paragraph => {
+
 	return {
 		type: "Paragraph",
 		result,
@@ -213,7 +229,10 @@ export const heading = map(
 				), ([resultA, resultB]) => resultA.concat(resultB))
 			)),
 			optional(
-				or(jumpLine, lineBreak)))),
+				or(jumpLine, lineBreak)
+			)
+		)
+	),
 	([hashes, text]): Heading => {
 		return {
 			type: "Heading",
@@ -226,7 +245,32 @@ export const heading = map(
 	}
 );
 
-export const markdownDocument = map(many1(or(heading, paragraph)), (result): HtmlDocument => {
+export const charsPrecededByBreakLine = map(and(lineBreak, many1(or3(boldText, italicText, rawText))), ([resultA, resultB]) => resultB);
+
+export const listItemLine = and(many1(or3(boldText, italicText, rawText)), manyN(charsPrecededByBreakLine))
+	
+
+// tratar caso que for um - seguindo imediatamente de um \n (não está incluido no textSpace)
+// export const listItem = and(minusSign, precededBy(many1(textSpace), paragraph))
+// não pode ter no texto:
+// \n-
+// \n -
+export const unorderedListItem = map(precededBy(minusSign, precededBy(many1(textSpace), many1(line))), (result): UnorderedListItem => {
+	return {
+		type: "UnorderedListItem",
+		result
+	}
+})
+
+export const unorderedList = map(many1(unorderedListItem), (result): UnorderedList => {
+	return {
+		type: "UnorderedList",
+		result
+	}
+})
+// export const list = and(listItem, manyN(and3(normalLineBreak, minusSign, precededBy(many1(textSpace), many1(or3(boldText, italicText, rawText))))) )
+
+export const markdownDocument = map(many1(or3(heading, unorderedList, paragraph)), (result): HtmlDocument => {
 	return {
 		type: "Document",
 		result
@@ -245,7 +289,7 @@ const charSequence = many1(or3(literalLineBreak, literalTab, rawText));
 // Para usar caracteres especiais de forma literal deve-se colocar / antes, como mostrado nos literalSpecialChars
 // para mudar de ideia teria que reativar o literalAsteriscksChar e incluir em todos os parsers de Text (bold, italic, raw)
 
-// o paragrafo entende que é para pular de linha ois havera 2 ou mais \n, o primeiro vira no final de uma line
+// o paragrafo entende que é para pular de linha os havera 2 ou mais \n, o primeiro vira no final de uma line
 // e sera lido pelo parser de line, o segundo e os demais serão lidos pelo parser de paragraph
 
 // um parágrafo é formado por várias linhas que são formadas pela combinação de textos em negrito, itálico e normal
@@ -254,14 +298,37 @@ const charSequence = many1(or3(literalLineBreak, literalTab, rawText));
 
 // TODO
 
-// - Criar testes para os parsers de linha e parágrafo
+// - Criar testes para os parsers de parágrafo
 // -  Criar tipos para os retornos dos maps mais importantes para remover o as const
 // - Iniciar o script que le a ast/objeto construido e gera o html
 // - Revisar elemento heading
 // - Implementar outros elementos como listas
+// - criar teste para not e heading
 
 // -----------------------------------------------------------------------------------------
 
+
+// console.log(listItem("\n- first item  \n mmmm  \n- second item"))
+// console.log(listItem("  \n"))
+// console.log(unorderedList("- this is a list item  \nwith multiple lines"))
+// console.log(listItem("- this is a list item"))
+
+// console.log(unorderedList("- this is a list item  \n- this is another list item\n")[0])
+
+// console.log(and3(not(minusSign), map(and(many1(or3(boldText, italicText, rawText)), optional(manyN(charsPrecededByBreakLine))), ([resultA, resultB]) => [resultA, ...resultB]), lineBreak)("abcdbffef\n\n"))
+console.log(listItemLine("\n"))
+console.log(listItemLine("ab c \nabv"))
+
+console.log(listItemLine("**abc**"))
+console.log(listItemLine("*abc*"))
+
+
+// console.log(list("- this is a list item  - this is another list item"))
+
+
+
+
+// console.log(list("- item 1\n- item 2")[0][0][1].result)
 
 // console.log(boldText("**ab	/*c**")[0]);
 // console.log(boldText("**ab/*c**"));
@@ -284,7 +351,14 @@ const charSequence = many1(or3(literalLineBreak, literalTab, rawText));
 // console.log(innerBoldText2("a *b*c"))
 // console.log(innerBoldText2("a *b* c"))
 
+// console.log(map(and(allButSpecificChar(MINUS_SIGN), and(many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak))), ([resultA, resultB]) => resultB[0].unshift({
+// 	type: "Text",
+// 	result: resultA
+// }))("abcd efe ded"))
+// console.log(map(and(allButSpecificChar(MINUS_SIGN), and(many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak))), ([resultA, resultB]) => resultA)("abcd efe ded"))
+// console.log(line("abcd ef-e ded"))
 
+// console.log(allButSpecificChar(MINUS_SIGN)("abc"))
 
 
 // console.log(boldText("**a  bdgcd d *c v b* cded d**"))
@@ -313,7 +387,7 @@ const charSequence = many1(or3(literalLineBreak, literalTab, rawText));
 
 // console.log(paragraph("*teste* **teste2** abcd  cdc /*  \n*teste* **teste2** abcd  cdc /*  \n\n\n*teste* **teste2** abcd  cdc /*  \n*teste* **teste2** abcd  cdc /*"))
 
-// console.log(markdownDocument("*teste* **teste2** abcd  cdc /*  \n*teste* **teste2** abcd  cdc /*  \n\n\n*teste* **teste2** abcd  cdc /*  \n*teste* **teste2** abcd  cdc /*"))
+// console.log(markdownDocument("*This* **is** the /*  \n*first* **paragraph** abcd  cdc /*  \n\n\n*This* **is** the  second /*  \n*paragraph* **teste2** abcd  cdc /*"))
 
 
 

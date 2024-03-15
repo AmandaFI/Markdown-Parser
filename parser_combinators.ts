@@ -59,6 +59,16 @@ export const andNot =
 export const andNot3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<A> =>
 	andNot(parserA, and(parserB, parserC));
 
+// export const not = <A> (parserA: Parser<A>) => 
+// input => {
+// 	const [resultA, restA] = parserA(input);
+
+// 	if (isError(resultA)) return ["", input];
+
+// 	return [error("Match. (not)"), input]
+
+// };
+
 export const and3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<[A, B, C]> =>
 	map(and(and(parserA, parserB), parserC), ([resultAB, resultC]) => [...resultAB, resultC]);
 
@@ -131,12 +141,15 @@ export const succeededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parse
 export const precededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<B> =>
 	map(and(parserA, parserB), ([_resultA, resultB]) => resultB);
 
+export const notPrecededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<string> =>
+	map(and(parserA, parserB), (result) => result.join());
+
 export const delimitedBy = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<B> =>
 	map(and3(parserA, parserB, parserC), ([_resultA, resultB, _resultC]) => resultB);
 
 export const concat = (parser: Parser<string[]>): Parser<string> => map(parser, result => result.join(""));
 
-const not =
+export const not =
 	(parser: Parser<string>): Parser<string> =>
 	input => {
 		const [result, rest] = parser(input);

@@ -18,6 +18,11 @@ export type Line = {
 	result: Array<Text | Italic | Bold>
 }
 
+export type ListItemLine = {
+	type: "ListItemLine",
+	result: Array<Text | Italic | Bold>
+}
+
 export type Paragraph = {
 	type: "Paragraph",
 	result: Array<Line>
@@ -29,10 +34,20 @@ export type Heading = {
 	result: Text;
 };
 
+export type UnorderedListItem = {
+	type: "UnorderedListItem",
+	result: Array<Line>
+}
+
+export type UnorderedList = {
+	type: "UnorderedList",
+	result: Array<UnorderedListItem>
+}
+
 export type HtmlDocument = {
 	type: "Document",
-	result: Array<Heading | Paragraph>
+	result: Array<Heading | UnorderedList | Paragraph>
 }
 
 
-export type PartType = Text | Italic | Bold | Line | Paragraph | HtmlDocument | Heading
+export type PartType = Text | Italic | Bold | Line | Paragraph | HtmlDocument | Heading | UnorderedListItem | UnorderedList 

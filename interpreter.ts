@@ -23,6 +23,10 @@ const parseAst = (part: PartType): string => {
       return part.result.reduce((acc, element) => acc.concat(parseAst(element)), "");
     case "Heading":
       return `<h${part.hashCount.toString()}>${parseAst(part.result)}</h${part.hashCount.toString()}>`
+    case "UnorderedList":
+      return `<ul>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</ul>`
+    case "UnorderedListItem":
+      return `<li>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
     case "Paragraph":
       return `<p>${part.result.reduce((acc: string, el) => acc.concat(parseAst(el)), "")}</p>`
     case "Line":
