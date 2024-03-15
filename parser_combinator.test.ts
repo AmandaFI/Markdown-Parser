@@ -27,7 +27,7 @@ import {
 	andNot3,
 } from "./parser_combinators.ts";
 
-import { boldText, italicText, literalSpecialChars, textChars, textSpace, rawText } from "./markdown_parser_combinators.ts";
+import { boldText, italicText, literalSpecialChars, textChars, textSpace, rawText, line } from "./markdown_parser_combinators.ts";
 
 // deno test parser_combinator.test.ts
 
@@ -318,11 +318,8 @@ describe("Markdown parsers:", () => {
 
 	describe("RawText:", () => {
 		assertArrayIncludes(rawText("abc  ef /*"), [{
-			type: "Raw",
-			result: {
-				type: "Text",
-				result: "abc  ef *",
-			},
+			type: "Text",
+			result: "abc  ef *",
 		}, ""]);
 		assertArrayIncludes(rawText("*abc*"), [new Error(), "*abc*"]);
 		assertArrayIncludes(rawText("**abc**"), [new Error(), "**abc**"]);
@@ -389,5 +386,55 @@ describe("Markdown parsers:", () => {
 		assertArrayIncludes(boldText("**abc **"), [new Error(), "**abc **"]);
 		assertArrayIncludes(boldText("** abc **"), [new Error(), "** abc **"]);
 
+	});
+	describe("Line", () => {
+		assertArrayIncludes(line("This is a text line."), [{
+			type: "Line",
+			result: [
+				{
+					type: "Text",
+					result: "This is a text line."
+				}
+			],
+		}, ""]);
+		assertArrayIncludes(line("Text line with markdown *line break* in the **end.**  \n"), [{
+			type: "Line",
+			result: [
+				{
+					type: "Text",
+					result: "Text line with markdown "
+				},
+				{
+					type: "Italic",
+					result:
+						{
+							type: "Text",
+							result: "line break"
+						},
+				},
+				{
+					type: "Text",
+					result: " in the "
+				},
+				{
+					type: "Bold",
+					result: [
+						{
+							type: "Text",
+							result: "end."
+						}
+					]
+				}
+			],
+		}, ""]);
+		assertArrayIncludes(line("This is a text line.  \nThis is another line."), [{
+			type: "Line",
+			result: [
+				{
+					type: "Text",
+					result: "This is a text line."
+				}
+			],
+		}, "This is another line."]);
 	});
 });

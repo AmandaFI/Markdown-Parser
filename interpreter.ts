@@ -28,11 +28,9 @@ const parseAst = (part: PartType): string => {
     case "Line":
       return `${part.result.reduce((acc: string, el) => acc.concat(parseAst(el)), "")}<br/>`
     case "Bold":
-      return `<b>${part.result.reduce((acc: string, el) => acc.concat(parseAst(el)), "")}</b>`
+      return `<strong>${part.result.reduce((acc: string, el) => acc.concat(parseAst(el)), "")}</strong>`
     case "Italic":
-      return `<i>${parseAst(part.result)}</i>`
-    case "Raw":
-      return parseAst(part.result)
+      return `<em>${parseAst(part.result)}</em>`
     case "Text":
       return part.result
   }

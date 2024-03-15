@@ -3,11 +3,6 @@ export type Text = {
 	result: string
 }
 
-export type Raw = {
-	type: "Raw",
-	result: Text
-}
-
 export type Italic = {
 	type: "Italic",
 	result: Text
@@ -20,7 +15,7 @@ export type Bold = {
 
 export type Line = {
 	type: "Line",
-	result: Array<Raw | Italic | Bold>
+	result: Array<Text | Italic | Bold>
 }
 
 export type Paragraph = {
@@ -40,4 +35,4 @@ export type HtmlDocument = {
 }
 
 
-export type PartType = Text | Raw | Italic | Bold | Line | Paragraph | HtmlDocument | Heading
+export type PartType = Text | Italic | Bold | Line | Paragraph | HtmlDocument | Heading
