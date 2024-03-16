@@ -25,9 +25,10 @@ import {
 	specificCharSequence,
 	empty,
 	andNot3,
+	not,
 } from "./parser_combinators.ts";
 
-import { boldText, italicText, literalSpecialChars, textChars, textSpace, rawText, line } from "./markdown_parser_combinators.ts";
+import { boldText, italicText, literalSpecialChars, textChars, textSpace, rawText, line, heading } from "./markdown_parser_combinators.ts";
 
 // deno test parser_combinator.test.ts
 
@@ -198,6 +199,14 @@ describe("Level 1 parsers:", () => {
 		});
 		it(() => {
 			assertArrayIncludes(empty(""), ["", ""]);
+		});
+	});
+	describe("Not:", () => {
+		it(() => {
+			assertArrayIncludes(not(specificChar("a"))("bcd"), ["", "bcd"]);
+		});
+		it(() => {
+			assertArrayIncludes(not(specificChar("a"))("abcd"), [new Error(), "abcd"]);
 		});
 	});
 });
@@ -436,5 +445,26 @@ describe("Markdown parsers:", () => {
 				}
 			],
 		}, "This is another line."]);
+	});
+
+	describe("Heading:", () => {
+		assertArrayIncludes(heading("### This is a heading"), [{
+			type: "Heading",
+			hashCount: 3,
+			result: {
+				type: "Text",
+				result: "This is a heading"
+			},
+		}, ""]);
+		assertArrayIncludes(heading("### This is a heading      \n"), [{
+			type: "Heading",
+			hashCount: 3,
+			result: {
+				type: "Text",
+				result: "This is a heading      "
+			},
+		}, ""]);
+		assertArrayIncludes(heading("###This is not a heading"), [new Error(), "###This is not a heading"]);
+		assertArrayIncludes(heading("####### This is not a heading"), [new Error(), "####### This is not a heading"]);
 	});
 });

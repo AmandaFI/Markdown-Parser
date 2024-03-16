@@ -27,6 +27,10 @@ const parseAst = (part: PartType): string => {
       return `<ul>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</ul>`
     case "UnorderedListItem":
       return `<li>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
+    case "OrderedList":
+      return `<ol>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</ol>`
+    case "OrderedListItem":
+      return `<li>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
     case "Paragraph":
       return `<p>${part.result.reduce((acc: string, el) => acc.concat(parseAst(el)), "")}</p>`
     case "Line":
@@ -47,4 +51,5 @@ console.log("Parsing...")
 const html = parseAst(ast)
 await Deno.writeTextFile("./result.html", html);
 console.log("Done")
+console.log(ast)
 

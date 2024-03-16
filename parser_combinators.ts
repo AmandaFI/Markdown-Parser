@@ -141,9 +141,6 @@ export const succeededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parse
 export const precededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<B> =>
 	map(and(parserA, parserB), ([_resultA, resultB]) => resultB);
 
-export const notPrecededBy = <A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<string> =>
-	map(and(parserA, parserB), (result) => result.join());
-
 export const delimitedBy = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<B> =>
 	map(and3(parserA, parserB, parserC), ([_resultA, resultB, _resultC]) => resultB);
 

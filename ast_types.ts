@@ -44,10 +44,20 @@ export type UnorderedList = {
 	result: Array<UnorderedListItem>
 }
 
+export type OrderedListItem = {
+	type: "OrderedListItem",
+	result: Array<Line>
+}
+
+export type OrderedList = {
+	type: "OrderedList",
+	result: Array<OrderedListItem>
+}
+
 export type HtmlDocument = {
 	type: "Document",
-	result: Array<Heading | UnorderedList | Paragraph>
+	result: Array<Heading | UnorderedList | OrderedList | Paragraph>
 }
 
 
-export type PartType = Text | Italic | Bold | Line | Paragraph | HtmlDocument | Heading | UnorderedListItem | UnorderedList 
+export type PartType = Text | Italic | Bold | Line | Paragraph | HtmlDocument | Heading | UnorderedListItem | UnorderedList | OrderedListItem | OrderedList

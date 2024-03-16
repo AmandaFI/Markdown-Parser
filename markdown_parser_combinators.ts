@@ -1,4 +1,4 @@
-import { Bold, Heading, HtmlDocument, Italic, Line, ListItemLine, Paragraph, Text, UnorderedList, UnorderedListItem } from "./ast_types.ts";
+import { Bold, Heading, HtmlDocument, Italic, Line, OrderedList, OrderedListItem, Paragraph, Text, UnorderedList, UnorderedListItem } from "./ast_types.ts";
 import {
 	and,
 	map,
@@ -29,6 +29,8 @@ import {
 	or5,
 	allButSpecificChar,
 	not,
+	specificChars,
+	or6,
 } from "./parser_combinators.ts";
 // remove .ts to run using vscode terminal e add .ts to run on normal terminal
 
@@ -48,6 +50,7 @@ const LITERAL_RIGHT_BAR = "//";
 const LITERAL_MINUS_SIGN = "/-"
 const HASH = "#"
 const MINUS_SIGN = "-"
+const POINT = "."
 
 const MARKDOWN_LINE_BREAK = "  \n";
 const JUMP_LINE = "\n\n";
@@ -57,9 +60,11 @@ const literalTab = specificCharSequence(LITERAL_TAB);
 const literalAsterisk = specificCharSequence(LITERAL_ASTERISK);
 const literalRightBar = specificCharSequence(LITERAL_RIGHT_BAR);
 const literalMinusSign = specificCharSequence(LITERAL_MINUS_SIGN);
+
 const asterisk = specificChar(ASTERISK);
 const hash = specificChar(HASH)
 const minusSign = specificChar(MINUS_SIGN)
+const point = specificChar(POINT)
 
 const normalLineBreak = specificChar(LINE_BREAK)
 
@@ -102,12 +107,20 @@ export const textSpace = map(
 
 export const normalSpace = specificChar(SPACE)
 
-export const literalSpecialChars = or5(
+
+export const numbers = specificChars(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
+
+export const orderedListMarker = map(and(concat(many1(numbers)), point), result => result.join())
+
+const literalOrderedListMarker = precededBy(specificChar(RIGHT_BAR), orderedListMarker)
+
+export const literalSpecialChars = or6(
 	map(literalLineBreak, _ => LINE_BREAK),
 	map(literalTab, _ => TAB),
 	map(literalAsterisk, _ => ASTERISK),
 	map(literalRightBar, _ => RIGHT_BAR),
-	map(literalMinusSign, _ => MINUS_SIGN)
+	map(literalMinusSign, _ => MINUS_SIGN),
+	map(literalOrderedListMarker, result => result)
 );
 
 export const charsWithoutSpace = or(literalSpecialChars, textChars);
@@ -199,7 +212,7 @@ export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), (res
 });
 
 
-export const line = map(and3(not(or(minusSign, lineBreak)), many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([_, result, __]): Line => {
+export const line = map(and3(not(or3(minusSign, orderedListMarker, lineBreak)), many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([_, result, __]): Line => {
 	return {
 		type: "Line",
 		result
@@ -219,7 +232,7 @@ export const heading = map(
 	and(
 		succeededBy(
 			andNot(headingHashSequence, many1(hash)), 
-			optional(manyN(space))
+			many1(space)
 		), 
 		succeededBy(
 			concat(many1(
@@ -248,13 +261,7 @@ export const heading = map(
 export const charsPrecededByBreakLine = map(and(lineBreak, many1(or3(boldText, italicText, rawText))), ([resultA, resultB]) => resultB);
 
 export const listItemLine = and(many1(or3(boldText, italicText, rawText)), manyN(charsPrecededByBreakLine))
-	
 
-// tratar caso que for um - seguindo imediatamente de um \n (não está incluido no textSpace)
-// export const listItem = and(minusSign, precededBy(many1(textSpace), paragraph))
-// não pode ter no texto:
-// \n-
-// \n -
 export const unorderedListItem = map(precededBy(minusSign, precededBy(many1(textSpace), many1(line))), (result): UnorderedListItem => {
 	return {
 		type: "UnorderedListItem",
@@ -262,24 +269,33 @@ export const unorderedListItem = map(precededBy(minusSign, precededBy(many1(text
 	}
 })
 
-export const unorderedList = map(many1(unorderedListItem), (result): UnorderedList => {
+export const unorderedList = map(succeededBy(many1(unorderedListItem), many1(lineBreak)), (result): UnorderedList => {
 	return {
 		type: "UnorderedList",
 		result
 	}
 })
-// export const list = and(listItem, manyN(and3(normalLineBreak, minusSign, precededBy(many1(textSpace), many1(or3(boldText, italicText, rawText))))) )
 
-export const markdownDocument = map(many1(or3(heading, unorderedList, paragraph)), (result): HtmlDocument => {
+export const orderedListItem = map(precededBy(and(orderedListMarker, many1(textSpace)), many1(line)), (result): OrderedListItem => {
+	return {
+		type: "OrderedListItem",
+		result
+	}
+})
+
+export const orderedList = map(succeededBy(many1(orderedListItem), many1(lineBreak)), (result): OrderedList => {
+	return {
+		type: "OrderedList",
+		result
+	}
+})
+
+export const markdownDocument = map(many1(or4(heading, unorderedList, orderedList, paragraph)), (result): HtmlDocument => {
 	return {
 		type: "Document",
 		result
 	}
 })
-
-const charSequence = many1(or3(literalLineBreak, literalTab, rawText));
-
-// Reveer heading
 
 
 // -----------------------------------------------------------------------------------------
@@ -299,11 +315,10 @@ const charSequence = many1(or3(literalLineBreak, literalTab, rawText));
 // TODO
 
 // - Criar testes para os parsers de parágrafo
-// -  Criar tipos para os retornos dos maps mais importantes para remover o as const
-// - Iniciar o script que le a ast/objeto construido e gera o html
-// - Revisar elemento heading
-// - Implementar outros elementos como listas
-// - criar teste para not e heading
+// - Implementar outros elementos como links
+// - testar melhor as listas ordenadas e não ordenadas
+// - criar teste para unordered e ordered list and items
+// - fazer testes para os parsers intermediarios (number, charsWithoutSpace, ...)
 
 // -----------------------------------------------------------------------------------------
 
@@ -313,14 +328,17 @@ const charSequence = many1(or3(literalLineBreak, literalTab, rawText));
 // console.log(unorderedList("- this is a list item  \nwith multiple lines"))
 // console.log(listItem("- this is a list item"))
 
-// console.log(unorderedList("- this is a list item  \n- this is another list item\n")[0])
+// console.log(markdownDocument("- this is a list item  \n- this is another list item  \n\n\nabcd"))
+console.log(orderedListItem("13. abcdcd"))
+console.log(orderedList("1. abcdcd  \n2. desdsed  \n32. desdda  \n\n"))
+
 
 // console.log(and3(not(minusSign), map(and(many1(or3(boldText, italicText, rawText)), optional(manyN(charsPrecededByBreakLine))), ([resultA, resultB]) => [resultA, ...resultB]), lineBreak)("abcdbffef\n\n"))
-console.log(listItemLine("\n"))
-console.log(listItemLine("ab c \nabv"))
+// console.log(listItemLine("\n"))
+// console.log(listItemLine("ab c \nabv"))
 
-console.log(listItemLine("**abc**"))
-console.log(listItemLine("*abc*"))
+// console.log(listItemLine("**abc**"))
+// console.log(listItemLine("*abc*"))
 
 
 // console.log(list("- this is a list item  - this is another list item"))
@@ -373,14 +391,6 @@ console.log(listItemLine("*abc*"))
 
 // console.log(boldText("**a *b* c **"))
 // console.log(boldText("** a *b* c**"))
-
-// console.log(and(charsWithoutSpace, manyN(optional(charsPrecededBySpace)))("abcd ef dcdc"))
-// console.log(map(and(charsWithoutSpace, optional(concat(manyN(charsPrecededBySpace)))), ([resultA, resultB]) => resultA.concat(resultB))("abcd ef dcdc"))
-
-
-// console.log(rawText("abcd  cdc /*"))
-// console.log(rawText("**a**"))
-// console.log(rawText("*a*"))
 
 // console.log(line("*teste* **teste2** abcd  cdc /*  \n"))
 // console.log(line("*teste* **teste2** abcd  cdc /*  fasfsae"))
