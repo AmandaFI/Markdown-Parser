@@ -36,7 +36,7 @@ export type Heading = {
 
 export type UnorderedListItem = {
 	type: "UnorderedListItem",
-	result: Array<Line>
+	result: Paragraph
 }
 
 export type UnorderedList = {
@@ -54,10 +54,20 @@ export type OrderedList = {
 	result: Array<OrderedListItem>
 }
 
-export type HtmlDocument = {
-	type: "Document",
+export type BlockQuote = {
+	type: "BlockQuote",
 	result: Array<Heading | UnorderedList | OrderedList | Paragraph>
 }
 
+export type SpareBreakLine = {
+	type: "SpareBreakLine"
+}
 
-export type PartType = Text | Italic | Bold | Line | Paragraph | HtmlDocument | Heading | UnorderedListItem | UnorderedList | OrderedListItem | OrderedList
+export type HtmlDocument = {
+	type: "Document",
+	result: Array<Heading | UnorderedList | OrderedList | Paragraph | BlockQuote | SpareBreakLine>
+}
+
+
+
+export type PartType = Text | Italic | Bold | Line | Paragraph | HtmlDocument | Heading | UnorderedListItem | UnorderedList | OrderedListItem | OrderedList | BlockQuote | SpareBreakLine

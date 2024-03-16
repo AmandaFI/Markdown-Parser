@@ -26,11 +26,15 @@ const parseAst = (part: PartType): string => {
     case "UnorderedList":
       return `<ul>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</ul>`
     case "UnorderedListItem":
-      return `<li>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
+      // return `<li>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
+      return `<li>${part.result.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
+
     case "OrderedList":
       return `<ol>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</ol>`
     case "OrderedListItem":
       return `<li>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
+    case "BlockQuote":
+      return `<blockquote>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</blockquote>`
     case "Paragraph":
       return `<p>${part.result.reduce((acc: string, el) => acc.concat(parseAst(el)), "")}</p>`
     case "Line":
@@ -41,6 +45,8 @@ const parseAst = (part: PartType): string => {
       return `<em>${parseAst(part.result)}</em>`
     case "Text":
       return part.result
+    case "SpareBreakLine":
+      return ""
   }
 }
 

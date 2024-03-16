@@ -1,4 +1,4 @@
-import { Bold, Heading, HtmlDocument, Italic, Line, OrderedList, OrderedListItem, Paragraph, Text, UnorderedList, UnorderedListItem } from "./ast_types.ts";
+import { BlockQuote, Bold, Heading, HtmlDocument, Italic, Line, OrderedList, OrderedListItem, Paragraph, Text, SpareBreakLine as SpareBreakLine, UnorderedList, UnorderedListItem } from "./ast_types.ts";
 import {
 	and,
 	map,
@@ -51,6 +51,7 @@ const LITERAL_MINUS_SIGN = "/-"
 const HASH = "#"
 const MINUS_SIGN = "-"
 const POINT = "."
+const GREATER_THAN_SIGN = ">" 
 
 const MARKDOWN_LINE_BREAK = "  \n";
 const JUMP_LINE = "\n\n";
@@ -60,11 +61,14 @@ const literalTab = specificCharSequence(LITERAL_TAB);
 const literalAsterisk = specificCharSequence(LITERAL_ASTERISK);
 const literalRightBar = specificCharSequence(LITERAL_RIGHT_BAR);
 const literalMinusSign = specificCharSequence(LITERAL_MINUS_SIGN);
+const literalGreaterThanSign = specificCharSequence(GREATER_THAN_SIGN);
+
 
 const asterisk = specificChar(ASTERISK);
 const hash = specificChar(HASH)
 const minusSign = specificChar(MINUS_SIGN)
 const point = specificChar(POINT)
+const greatherThanSign = specificChar(GREATER_THAN_SIGN)
 
 const normalLineBreak = specificChar(LINE_BREAK)
 
@@ -211,15 +215,16 @@ export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), (res
 	};
 });
 
+export const nonLineStarters = not(or4(minusSign, orderedListMarker, greatherThanSign, lineBreak))
 
-export const line = map(and3(not(or3(minusSign, orderedListMarker, lineBreak)), many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([_, result, __]): Line => {
+export const line = map(and3(nonLineStarters, many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([_, result, __]): Line => {
 	return {
 		type: "Line",
 		result
 	};
 });
 
-export const paragraph = map(and(many1(line), optional(many1(jumpLine))), ([result, _]): Paragraph => {
+export const paragraph = map(and(many1(line), optional(lineBreak)), ([result, _]): Paragraph => {
 // export const paragraph = map(precededBy(optional(many1(jumpLine)), and(many1(line), optional(jumpLine))), ([result, _]): Paragraph => {
 
 	return {
@@ -262,14 +267,14 @@ export const charsPrecededByBreakLine = map(and(lineBreak, many1(or3(boldText, i
 
 export const listItemLine = and(many1(or3(boldText, italicText, rawText)), manyN(charsPrecededByBreakLine))
 
-export const unorderedListItem = map(precededBy(minusSign, precededBy(many1(textSpace), many1(line))), (result): UnorderedListItem => {
+export const unorderedListItem = map(precededBy(minusSign, precededBy(many1(textSpace), paragraph)), (result): UnorderedListItem => {
 	return {
 		type: "UnorderedListItem",
 		result
 	}
 })
 
-export const unorderedList = map(succeededBy(many1(unorderedListItem), many1(lineBreak)), (result): UnorderedList => {
+export const unorderedList = map(succeededBy(many1(unorderedListItem), lineBreak), (result): UnorderedList => {
 	return {
 		type: "UnorderedList",
 		result
@@ -283,14 +288,29 @@ export const orderedListItem = map(precededBy(and(orderedListMarker, many1(textS
 	}
 })
 
-export const orderedList = map(succeededBy(many1(orderedListItem), many1(lineBreak)), (result): OrderedList => {
+export const orderedList = map(succeededBy(many1(orderedListItem), lineBreak), (result): OrderedList => {
 	return {
 		type: "OrderedList",
 		result
 	}
 })
 
-export const markdownDocument = map(many1(or4(heading, unorderedList, orderedList, paragraph)), (result): HtmlDocument => {
+export const list = or(unorderedList, orderedList)
+
+export const blockQuote = map(succeededBy(precededBy(and(greatherThanSign, manyN(space)), many1(or3(heading, list, paragraph))), lineBreak), (result): BlockQuote => {
+	return {
+		type: "BlockQuote",
+		result
+	}
+})
+
+export const trailingBrekLine = map(lineBreak, (_): SpareBreakLine => {
+	return {
+		type: "SpareBreakLine",
+	}
+})
+
+export const markdownDocument = map(many1(or5(heading, list, paragraph, blockQuote, trailingBrekLine)), (result): HtmlDocument => {
 	return {
 		type: "Document",
 		result
@@ -314,6 +334,7 @@ export const markdownDocument = map(many1(or4(heading, unorderedList, orderedLis
 
 // TODO
 
+// - mudar ordered list pra paragrafo ao inves de many1 de lines
 // - Criar testes para os parsers de parágrafo
 // - Implementar outros elementos como links
 // - testar melhor as listas ordenadas e não ordenadas
@@ -329,8 +350,10 @@ export const markdownDocument = map(many1(or4(heading, unorderedList, orderedLis
 // console.log(listItem("- this is a list item"))
 
 // console.log(markdownDocument("- this is a list item  \n- this is another list item  \n\n\nabcd"))
-console.log(orderedListItem("13. abcdcd"))
-console.log(orderedList("1. abcdcd  \n2. desdsed  \n32. desdda  \n\n"))
+// console.log(orderedListItem("13. abcdcd"))
+// console.log(orderedList("1. abcdcd  \n2. desdsed  \n32. desdda  \n\n"))
+
+console.log(blockQuote("> tsetsts  \ndasefefsf  \n\nfasefsefef\n\n\n\n\n\n\n\n\ndddd"))
 
 
 // console.log(and3(not(minusSign), map(and(many1(or3(boldText, italicText, rawText)), optional(manyN(charsPrecededByBreakLine))), ([resultA, resultB]) => [resultA, ...resultB]), lineBreak)("abcdbffef\n\n"))
