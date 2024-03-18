@@ -32,7 +32,8 @@ const parseAst = (part: PartType): string => {
     case "OrderedList":
       return `<ol>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</ol>`
     case "OrderedListItem":
-      return `<li>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
+      return `<li>${part.result.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
+      // return `<li>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
     case "BlockQuote":
       return `<blockquote>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</blockquote>`
     case "Paragraph":

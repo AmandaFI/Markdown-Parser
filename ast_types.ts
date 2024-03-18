@@ -46,7 +46,9 @@ export type UnorderedList = {
 
 export type OrderedListItem = {
 	type: "OrderedListItem",
-	result: Array<Line>
+	// result: Array<Line>
+	result: Paragraph
+
 }
 
 export type OrderedList = {
@@ -58,6 +60,12 @@ export type BlockQuote = {
 	type: "BlockQuote",
 	result: Array<Heading | UnorderedList | OrderedList | Paragraph>
 }
+
+// export type Link = {
+// 	type: "Link",
+// 	text: Text,
+// 	utl: Text
+// }
 
 export type SpareBreakLine = {
 	type: "SpareBreakLine"

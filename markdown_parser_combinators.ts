@@ -52,6 +52,12 @@ const HASH = "#"
 const MINUS_SIGN = "-"
 const POINT = "."
 const GREATER_THAN_SIGN = ">" 
+const LITERAL_GREATER_THAN_SIGN = "/>" 
+
+const OPEN_BRACKET = "["
+const CLOSE_BRACKET = "]"
+const OPEN_PARENTHESIS = "("
+const CLOSE_PARENTHESIS = ")"
 
 const MARKDOWN_LINE_BREAK = "  \n";
 const JUMP_LINE = "\n\n";
@@ -61,7 +67,7 @@ const literalTab = specificCharSequence(LITERAL_TAB);
 const literalAsterisk = specificCharSequence(LITERAL_ASTERISK);
 const literalRightBar = specificCharSequence(LITERAL_RIGHT_BAR);
 const literalMinusSign = specificCharSequence(LITERAL_MINUS_SIGN);
-const literalGreaterThanSign = specificCharSequence(GREATER_THAN_SIGN);
+const literalGreaterThanSign = specificCharSequence(LITERAL_GREATER_THAN_SIGN);
 
 
 const asterisk = specificChar(ASTERISK);
@@ -69,6 +75,11 @@ const hash = specificChar(HASH)
 const minusSign = specificChar(MINUS_SIGN)
 const point = specificChar(POINT)
 const greatherThanSign = specificChar(GREATER_THAN_SIGN)
+const open_bracket = specificChar(OPEN_BRACKET)
+const close_bracket = specificChar(CLOSE_BRACKET)
+const open_parenthesis = specificChar(OPEN_PARENTHESIS)
+const close_parenthesis = specificChar(CLOSE_PARENTHESIS)
+
 
 const normalLineBreak = specificChar(LINE_BREAK)
 
@@ -98,7 +109,7 @@ const sentenceLineBreak = map(
 
 const boldIndicator = concat(manyN(asterisk, { min: 2, max: 2 }));
 
-export const textChars = concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB, ASTERISK, RIGHT_BAR])));
+export const textChars = concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB, ASTERISK, RIGHT_BAR, OPEN_BRACKET, CLOSE_BRACKET, OPEN_PARENTHESIS, CLOSE_PARENTHESIS])));
 
 export const textSpace = map(
 	or3(
@@ -118,6 +129,7 @@ export const orderedListMarker = map(and(concat(many1(numbers)), point), result 
 
 const literalOrderedListMarker = precededBy(specificChar(RIGHT_BAR), orderedListMarker)
 
+// adicionar literalGreaterThanSign, open and close bracket and parenthesis aqui
 export const literalSpecialChars = or6(
 	map(literalLineBreak, _ => LINE_BREAK),
 	map(literalTab, _ => TAB),
@@ -274,21 +286,21 @@ export const unorderedListItem = map(precededBy(minusSign, precededBy(many1(text
 	}
 })
 
-export const unorderedList = map(succeededBy(many1(unorderedListItem), lineBreak), (result): UnorderedList => {
+export const unorderedList = map(succeededBy(many1(unorderedListItem), optional(lineBreak)), (result): UnorderedList => {
 	return {
 		type: "UnorderedList",
 		result
 	}
 })
 
-export const orderedListItem = map(precededBy(and(orderedListMarker, many1(textSpace)), many1(line)), (result): OrderedListItem => {
+export const orderedListItem = map(precededBy(and(orderedListMarker, many1(textSpace)), paragraph), (result): OrderedListItem => {
 	return {
 		type: "OrderedListItem",
 		result
 	}
 })
 
-export const orderedList = map(succeededBy(many1(orderedListItem), lineBreak), (result): OrderedList => {
+export const orderedList = map(succeededBy(many1(orderedListItem), optional(lineBreak)), (result): OrderedList => {
 	return {
 		type: "OrderedList",
 		result
@@ -297,10 +309,22 @@ export const orderedList = map(succeededBy(many1(orderedListItem), lineBreak), (
 
 export const list = or(unorderedList, orderedList)
 
-export const blockQuote = map(succeededBy(precededBy(and(greatherThanSign, manyN(space)), many1(or3(heading, list, paragraph))), lineBreak), (result): BlockQuote => {
+export const blockQuote = map(succeededBy(precededBy(and(greatherThanSign, manyN(space)), many1(or3(heading, list, paragraph))), optional(lineBreak)), (result): BlockQuote => {
 	return {
 		type: "BlockQuote",
 		result
+	}
+})
+
+const link_text = delimitedBy(open_bracket, rawText, close_bracket)
+// resolver situação de nao poder ter o fecha parenteses no link, talvz involver os literalcharacters aqui
+const link_url = delimitedBy(open_parenthesis, concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB, CLOSE_PARENTHESIS]))), close_parenthesis)
+
+const link = map(and(link_text, link_url), ([text, url]) => {
+	return {
+		type: "Link",
+		text,
+		url
 	}
 })
 
@@ -334,9 +358,10 @@ export const markdownDocument = map(many1(or5(heading, list, paragraph, blockQuo
 
 // TODO
 
-// - mudar ordered list pra paragrafo ao inves de many1 de lines
+// INSERIR BRACKETS AND PARENTHESIS NO LITRAL, PARA QUE POSSAM SER LIDOS EM UMA LINE SEM QUEBRAR
+// evitar que o parser quebre, talvez criar um spareSpace parser
 // - Criar testes para os parsers de parágrafo
-// - Implementar outros elementos como links
+// - Implementar outros elementos como links, images and code
 // - testar melhor as listas ordenadas e não ordenadas
 // - criar teste para unordered e ordered list and items
 // - fazer testes para os parsers intermediarios (number, charsWithoutSpace, ...)
@@ -353,7 +378,14 @@ export const markdownDocument = map(many1(or5(heading, list, paragraph, blockQuo
 // console.log(orderedListItem("13. abcdcd"))
 // console.log(orderedList("1. abcdcd  \n2. desdsed  \n32. desdda  \n\n"))
 
-console.log(blockQuote("> tsetsts  \ndasefefsf  \n\nfasefsefef\n\n\n\n\n\n\n\n\ndddd"))
+// console.log(blockQuote("> this is a blockquote  \nabcd  \n## with a heading  \n- and a unordered list  \n\n\n\n"))
+// console.log(blockQuote("> this is a blockquote  \nwith multiple lines  \n## with a heading  \n- and a unordered list  \n1. and a ordered list\n\n"))
+
+console.log(link("[tests](www.eafsef.com)"))
+// console.log(link_text("[fsfe fsef]"))
+// console.log(link_text("[fsfe fsef ]"))
+
+
 
 
 // console.log(and3(not(minusSign), map(and(many1(or3(boldText, italicText, rawText)), optional(manyN(charsPrecededByBreakLine))), ([resultA, resultB]) => [resultA, ...resultB]), lineBreak)("abcdbffef\n\n"))
