@@ -318,6 +318,7 @@ export const blockQuote = map(succeededBy(precededBy(and(greatherThanSign, manyN
 
 const link_text = delimitedBy(open_bracket, rawText, close_bracket)
 // resolver situação de nao poder ter o fecha parenteses no link, talvz involver os literalcharacters aqui
+// Deixar como charsWithoutSpace mesmo, a pessoa que ajuste a url para colocaro / e usar o literais
 const link_url = delimitedBy(open_parenthesis, concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB, CLOSE_PARENTHESIS]))), close_parenthesis)
 
 const link = map(and(link_text, link_url), ([text, url]) => {
