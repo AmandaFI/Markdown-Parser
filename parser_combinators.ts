@@ -4,10 +4,7 @@
 
 /// <reference lib="deno.ns" />
 
-export const SPACE = " ";
 const EMPTY = "";
-export const TAB = "\t";
-export const LINE_BREAK = "\n";
 
 type ParserResult<T> = [resultOrError: T | Error, rest: string];
 type Parser<T> = (input: string) => ParserResult<T>;
@@ -60,16 +57,6 @@ export const andNot =
 
 export const andNot3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<A> =>
 	andNot(parserA, and(parserB, parserC));
-
-// export const not = <A> (parserA: Parser<A>) => 
-// input => {
-// 	const [resultA, restA] = parserA(input);
-
-// 	if (isError(resultA)) return ["", input];
-
-// 	return [error("Match. (not)"), input]
-
-// };
 
 export const and3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<[A, B, C]> =>
 	map(and(and(parserA, parserB), parserC), ([resultAB, resultC]) => [...resultAB, resultC]);
@@ -151,7 +138,7 @@ export const concat = (parser: Parser<string[]>): Parser<string> => map(parser, 
 export const not =
 	(parser: Parser<string>): Parser<string> =>
 	input => {
-		const [result, rest] = parser(input);
+		const [result, _rest] = parser(input);
 
 		return isError(result) ? ["", input] : [error("No match. (It did but it should not.)"), input];
 	};
@@ -171,21 +158,3 @@ export const specificCharSequence =
 
 export const empty: Parser<EmptyString> = (input: string) => [EMPTY, input];
 
-// ------------------- not yet tested ----------------
-export const lineBreak = specificChar(LINE_BREAK);
-export const space = specificChar(SPACE);
-export const tab = specificChar(TAB);
-
-export const spaceSequence = map(many1(space), result => {
-	return {
-		type: "Space" as const,
-		quantity: result.length,
-	};
-});
-
-export const tabSequence = map(many1(tab), result => {
-	return {
-		type: "Tab" as const,
-		quantity: result.length,
-	};
-});

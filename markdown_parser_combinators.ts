@@ -5,29 +5,19 @@ import {
 	many1,
 	manyN,
 	specificCharSequence,
-	space,
-	lineBreak,
 	specificChar,
 	or,
 	concat,
 	andNot,
 	allButSpecificChars,
-	SPACE,
-	spaceSequence,
-	TAB,
-	tabSequence,
-	LINE_BREAK,
 	optional,
 	or3,
 	succeededBy,
 	delimitedBy,
 	or4,
-	andNot3,
 	and3,
-	any,
 	precededBy,
 	or5,
-	allButSpecificChar,
 	not,
 	specificChars,
 	or6,
@@ -38,17 +28,9 @@ import {
 // primiero o ele tenta dar match com o parserA, caso não de ele se arrepende da decisão, retorna ao ponto
 // de antes de usar o parserA e tenta com o parserB dessa vez, isso consite em backtracking.
 
-const LITERAL_LINE_BREAK = "/\n";
-const LITERAL_TAB = "/\t";
-const LITERAL_ASTERISK = "/*";
-const LITERAL_RIGHT_BAR = "//";
-const LITERAL_MINUS_SIGN = "/-"
-const LITERAL_GREATER_THAN_SIGN = "/>" 
-const LITERAL_OPEN_BRACKET = "/["
-const LITERAL_CLOSE_BRACKET = "/]"
-const LITERAL_OPEN_PARENTHESIS = "/("
-const LITERAL_CLOSE_PARENTHESIS = "/)"
-
+const SPACE = " ";
+const TAB = "\t";
+const LINE_BREAK = "\n";
 const RIGHT_BAR = "/";
 const ASTERISK = "*";
 const HASH = "#"
@@ -60,8 +42,16 @@ const CLOSE_BRACKET = "]"
 const OPEN_PARENTHESIS = "("
 const CLOSE_PARENTHESIS = ")"
 
-const MARKDOWN_LINE_BREAK = "  \n";
-const JUMP_LINE = "\n\n";
+const LITERAL_LINE_BREAK = "/\n";
+const LITERAL_TAB = "/\t";
+const LITERAL_ASTERISK = "/*";
+const LITERAL_RIGHT_BAR = "//";
+const LITERAL_MINUS_SIGN = "/-"
+const LITERAL_GREATER_THAN_SIGN = "/>" 
+const LITERAL_OPEN_BRACKET = "/["
+const LITERAL_CLOSE_BRACKET = "/]"
+const LITERAL_OPEN_PARENTHESIS = "/("
+const LITERAL_CLOSE_PARENTHESIS = "/)"
 
 const literalLineBreak = specificCharSequence(LITERAL_LINE_BREAK);
 const literalTab = specificCharSequence(LITERAL_TAB);
@@ -75,6 +65,9 @@ const literalOpenParenthesis = specificChar(LITERAL_OPEN_PARENTHESIS)
 const literalCloseParenthesis = specificChar(LITERAL_CLOSE_PARENTHESIS)
 
 
+const lineBreak = specificChar(LINE_BREAK);
+const space = specificChar(SPACE);
+const tab = specificChar(TAB);
 const asterisk = specificChar(ASTERISK);
 const hash = specificChar(HASH)
 const minusSign = specificChar(MINUS_SIGN)
@@ -86,31 +79,30 @@ const openParenthesis = specificChar(OPEN_PARENTHESIS)
 const closeParenthesis = specificChar(CLOSE_PARENTHESIS)
 
 
-const normalLineBreak = specificChar(LINE_BREAK)
-
-const markdownLineBreak = and(manyN(space, { min: 2 }), lineBreak);
-
-const jumpLine = map(many1(lineBreak), result => {
+export const spaceSequence = map(many1(space), result => {
 	return {
-		type: "JumpLine",
+		type: "Space" as const,
+		quantity: result.length,
+	};
+});
+
+export const tabSequence = map(many1(tab), result => {
+	return {
+		type: "Tab" as const,
+		quantity: result.length,
 	};
 });
 
 const headingHashSequence = map(many1(hash, 6), result => {
 	return {
-		type: "Hash",
+		type: "Hash" as const,
 		quantity: result.length,
 	};
 });
 
-const sentenceLineBreak = map(
-	or(and(concat(manyN(space, { min: 2 })), lineBreak), and(tabSequence, lineBreak)),
-	result => {
-		return {
-			type: "LineBreak",
-		};
-	}
-);
+const jumpLine = many1(lineBreak)
+
+const sentenceLineBreak = or(and(concat(manyN(space, { min: 2 })), lineBreak), and(tabSequence, lineBreak))
 
 const boldIndicator = concat(manyN(asterisk, { min: 2, max: 2 }));
 
@@ -126,7 +118,6 @@ export const textSpace = map(
 );
 
 export const normalSpace = specificChar(SPACE)
-
 
 export const numbers = specificChars(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"])
 
@@ -353,7 +344,7 @@ export const markdownDocument = map(many1(or5(heading, list, paragraph, blockQuo
 
 // TODO
 
-// INSERIR BRACKETS AND PARENTHESIS NO LITRAL, PARA QUE POSSAM SER LIDOS EM UMA LINE SEM QUEBRAR
+// incluir link no tipo de text dentro de italic e bold
 // evitar que o parser quebre, talvez criar um spareSpace parser
 // - Criar testes para os parsers de parágrafo
 // - Implementar outros elementos como links, images and code
@@ -376,7 +367,7 @@ export const markdownDocument = map(many1(or5(heading, list, paragraph, blockQuo
 // console.log(blockQuote("> this is a blockquote  \nabcd  \n## with a heading  \n- and a unordered list  \n\n\n\n"))
 // console.log(blockQuote("> this is a blockquote  \nwith multiple lines  \n## with a heading  \n- and a unordered list  \n1. and a ordered list\n\n"))
 
-console.log(link("[tests](www.eafsef.com)"))
+console.log(link("[tests](https:////www.eafsef.com)"))
 // console.log(link_text("[fsfe fsef]"))
 // console.log(link_text("[fsfe fsef ]"))
 
@@ -384,16 +375,9 @@ console.log(link("[tests](www.eafsef.com)"))
 
 
 // console.log(and3(not(minusSign), map(and(many1(or3(boldText, italicText, rawText)), optional(manyN(charsPrecededByBreakLine))), ([resultA, resultB]) => [resultA, ...resultB]), lineBreak)("abcdbffef\n\n"))
-// console.log(listItemLine("\n"))
-// console.log(listItemLine("ab c \nabv"))
-
-// console.log(listItemLine("**abc**"))
-// console.log(listItemLine("*abc*"))
 
 
 // console.log(list("- this is a list item  - this is another list item"))
-
-
 
 
 // console.log(list("- item 1\n- item 2")[0][0][1].result)
