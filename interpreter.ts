@@ -5,6 +5,7 @@
 // Allow read and write
 // deno run --allow-read --allow-write interpreter.ts
 
+
 import { PartType } from "./ast_types.ts";
 import { markdownDocument } from "./markdown_parser_combinators.ts";
 // remove .ts to run on vscode integrated terminal
@@ -28,7 +29,6 @@ const parseAst = (part: PartType): string => {
     case "UnorderedListItem":
       // return `<li>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
       return `<li>${part.result.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
-
     case "OrderedList":
       return `<ol>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</ol>`
     case "OrderedListItem":
@@ -48,15 +48,33 @@ const parseAst = (part: PartType): string => {
       return part.result
     case "SpareBreakLine":
       return ""
+    default: {
+      // https://www.typescriptlang.org/docs/handbook/2/narrowing.html#exhaustiveness-checking
+      const exhaustiveCheck: never = part
+      throw exhaustiveCheck
+    }
   }
 }
 
+export const log = console.log
+
+// deno-lint-ignore no-explicit-any
+export const inspect = (value: any) =>
+  Deno.inspect(value, {
+    depth: 999,
+    colors: true,
+    strAbbreviateSize: Number.MAX_SAFE_INTEGER,
+  }) as unknown as string
+export const printObject = (value: object) => log(inspect(value))
+
+
 const ast = buildAst(text)
-// console.log(ast)
+// console.log(ast) 
+printObject(ast)
+
 
 console.log("Parsing...")
 const html = parseAst(ast)
 await Deno.writeTextFile("./result.html", html);
 console.log("Done")
-console.log(ast)
 

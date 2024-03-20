@@ -34,26 +34,27 @@ import {
 } from "./parser_combinators.ts";
 // remove .ts to run using vscode terminal e add .ts to run on normal terminal
 
-
-
 // em um or por exemplo, é possivel ver o backtracking dos parsers. Considerando um or(parserA, parserB),
 // primiero o ele tenta dar match com o parserA, caso não de ele se arrepende da decisão, retorna ao ponto
 // de antes de usar o parserA e tenta com o parserB dessa vez, isso consite em backtracking.
-
-const RIGHT_BAR = "/";
-const ASTERISK = "*";
 
 const LITERAL_LINE_BREAK = "/\n";
 const LITERAL_TAB = "/\t";
 const LITERAL_ASTERISK = "/*";
 const LITERAL_RIGHT_BAR = "//";
 const LITERAL_MINUS_SIGN = "/-"
+const LITERAL_GREATER_THAN_SIGN = "/>" 
+const LITERAL_OPEN_BRACKET = "/["
+const LITERAL_CLOSE_BRACKET = "/]"
+const LITERAL_OPEN_PARENTHESIS = "/("
+const LITERAL_CLOSE_PARENTHESIS = "/)"
+
+const RIGHT_BAR = "/";
+const ASTERISK = "*";
 const HASH = "#"
 const MINUS_SIGN = "-"
 const POINT = "."
 const GREATER_THAN_SIGN = ">" 
-const LITERAL_GREATER_THAN_SIGN = "/>" 
-
 const OPEN_BRACKET = "["
 const CLOSE_BRACKET = "]"
 const OPEN_PARENTHESIS = "("
@@ -68,6 +69,10 @@ const literalAsterisk = specificCharSequence(LITERAL_ASTERISK);
 const literalRightBar = specificCharSequence(LITERAL_RIGHT_BAR);
 const literalMinusSign = specificCharSequence(LITERAL_MINUS_SIGN);
 const literalGreaterThanSign = specificCharSequence(LITERAL_GREATER_THAN_SIGN);
+const literalOpenBracket = specificChar(LITERAL_OPEN_BRACKET)
+const literalCloseBracket = specificChar(LITERAL_CLOSE_BRACKET)
+const literalOpenParenthesis = specificChar(LITERAL_OPEN_PARENTHESIS)
+const literalCloseParenthesis = specificChar(LITERAL_CLOSE_PARENTHESIS)
 
 
 const asterisk = specificChar(ASTERISK);
@@ -75,10 +80,10 @@ const hash = specificChar(HASH)
 const minusSign = specificChar(MINUS_SIGN)
 const point = specificChar(POINT)
 const greatherThanSign = specificChar(GREATER_THAN_SIGN)
-const open_bracket = specificChar(OPEN_BRACKET)
-const close_bracket = specificChar(CLOSE_BRACKET)
-const open_parenthesis = specificChar(OPEN_PARENTHESIS)
-const close_parenthesis = specificChar(CLOSE_PARENTHESIS)
+const openBracket = specificChar(OPEN_BRACKET)
+const closeBracket = specificChar(CLOSE_BRACKET)
+const openParenthesis = specificChar(OPEN_PARENTHESIS)
+const closeParenthesis = specificChar(CLOSE_PARENTHESIS)
 
 
 const normalLineBreak = specificChar(LINE_BREAK)
@@ -129,21 +134,31 @@ export const orderedListMarker = map(and(concat(many1(numbers)), point), result 
 
 const literalOrderedListMarker = precededBy(specificChar(RIGHT_BAR), orderedListMarker)
 
-// adicionar literalGreaterThanSign, open and close bracket and parenthesis aqui
+export const literalIsolationChars = or4(
+	map(literalOpenParenthesis, _ => OPEN_PARENTHESIS),
+	map(literalCloseParenthesis, _ => CLOSE_PARENTHESIS),
+	map(literalOpenBracket, _ => OPEN_BRACKET),
+	map(literalCloseBracket, _ => CLOSE_BRACKET)
+)
+
+export const literalMathOperators = or3(
+	map(literalMinusSign, _ => MINUS_SIGN),
+	map(literalAsterisk, _ => ASTERISK),
+	map(literalGreaterThanSign, _ => GREATER_THAN_SIGN),
+)
+
 export const literalSpecialChars = or6(
 	map(literalLineBreak, _ => LINE_BREAK),
 	map(literalTab, _ => TAB),
-	map(literalAsterisk, _ => ASTERISK),
 	map(literalRightBar, _ => RIGHT_BAR),
-	map(literalMinusSign, _ => MINUS_SIGN),
-	map(literalOrderedListMarker, result => result)
+	literalMathOperators,
+	literalIsolationChars,
+	literalOrderedListMarker
 );
 
 export const charsWithoutSpace = or(literalSpecialChars, textChars);
 export const charsPrecededBySpace = map(and(concat(many1(textSpace)), charsWithoutSpace), ([resultA, resultB]) => resultA.concat(resultB));
 export const charsOptionallyPrecededBySpace = map(and(concat(manyN(textSpace)), charsWithoutSpace), ([resultA, resultB]) => resultA.concat(resultB));
-
-
 
 
 // não mais necessário
@@ -161,50 +176,43 @@ export const charsOptionallyPrecededBySpace = map(and(concat(manyN(textSpace)), 
 // );
 
 export const innerItalicText = map(map(and(charsWithoutSpace, concat(manyN(charsPrecededBySpace))), ([resultA, resultB]) => resultA.concat(resultB)),
-(result): Text => {
-	return {
+(result): Text => ({
 		type: "Text",
 		result
-	}
-}
+	})
 )
 
-export const italicText = map(delimitedBy(asterisk, innerItalicText, asterisk), (result): Italic => {
-		return {
-			type: "Italic",
-			result,
-		};
-	}
+export const italicText = map(delimitedBy(asterisk, innerItalicText, asterisk), (result): Italic => ({
+		type: "Italic",
+		result,
+	})
 );
 
 export const innerBoldText = map(
 	and(
 		or(
-			map(charsWithoutSpace, (result): Text => {
-				return {
+			map(charsWithoutSpace, (result): Text => ({
 					type: "Text",
 					result
-				}
-			}),
+				})
+			),
 			italicText
 		),
 		manyN(
 			or(
-				map(concat(many1(charsOptionallyPrecededBySpace)), (result): Text => {
-					return {
+				map(concat(many1(charsOptionallyPrecededBySpace)), (result): Text => ({
 						type: "Text",
 						result
-					}
-				}), 
-				map(and(optional(concat(manyN(textSpace))), italicText), ([resultA, resultB]): Italic => {
-					return {
+					})
+				), 
+				map(and(optional(concat(manyN(textSpace))), italicText), ([resultA, resultB]): Italic => ({
 						type: "Italic",
 						result: {
 							type: "Text",
 							result: resultA.concat(resultB.result.result)
 						}
-					}
-				})
+					})
+				)
 			)
 		)
 	),
@@ -212,33 +220,29 @@ export const innerBoldText = map(
 )
 
 export const boldText = map(delimitedBy(boldIndicator, innerBoldText, boldIndicator),
-	(result): Bold => {
-		return {
-			type: "Bold",
-			result,
-		};
-	}
+	(result): Bold => ({
+		type: "Bold",
+		result,
+	})
 );
 
-export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), (result): Text => {
-	return {
+export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), (result): Text => ({
 		type: "Text",
 		result
-	};
-});
+	})
+);
 
-export const nonLineStarters = not(or4(minusSign, orderedListMarker, greatherThanSign, lineBreak))
+export const isolationChars = or4(openParenthesis, closeParenthesis, openBracket, closeBracket)
+export const nonLineStarters = not(or5(minusSign, orderedListMarker, greatherThanSign, isolationChars, lineBreak))
 
-export const line = map(and3(nonLineStarters, many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([_, result, __]): Line => {
-	return {
+export const line = map(and3(nonLineStarters, many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([_, result, __]): Line => ({
 		type: "Line",
 		result
-	};
-});
+	})
+);
 
 export const paragraph = map(and(many1(line), optional(lineBreak)), ([result, _]): Paragraph => {
 // export const paragraph = map(precededBy(optional(many1(jumpLine)), and(many1(line), optional(jumpLine))), ([result, _]): Paragraph => {
-
 	return {
 		type: "Paragraph",
 		result,
@@ -263,49 +267,44 @@ export const heading = map(
 			)
 		)
 	),
-	([hashes, text]): Heading => {
-		return {
+	([hashes, text]): Heading => ({
 			type: "Heading",
 			hashCount: hashes.quantity,
 			result: {
 				type: "Text",
 				result: text
 			}
-		}
-	}
+	})
 );
 
-export const charsPrecededByBreakLine = map(and(lineBreak, many1(or3(boldText, italicText, rawText))), ([resultA, resultB]) => resultB);
+export const charsPrecededByBreakLine = map(and(lineBreak, many1(or3(boldText, italicText, rawText))), ([_resultA, resultB]) => resultB);
 
-export const listItemLine = and(many1(or3(boldText, italicText, rawText)), manyN(charsPrecededByBreakLine))
+export const listItem = precededBy(many1(textSpace), paragraph)
 
-export const unorderedListItem = map(precededBy(minusSign, precededBy(many1(textSpace), paragraph)), (result): UnorderedListItem => {
-	return {
+export const unorderedListItem = map(precededBy(minusSign, listItem), (result): UnorderedListItem => ({
 		type: "UnorderedListItem",
 		result
-	}
-})
+	})
+)
 
-export const unorderedList = map(succeededBy(many1(unorderedListItem), optional(lineBreak)), (result): UnorderedList => {
-	return {
+export const unorderedList = map(succeededBy(many1(unorderedListItem), optional(lineBreak)), (result): UnorderedList => ({
 		type: "UnorderedList",
 		result
-	}
-})
+	})
+)
 
-export const orderedListItem = map(precededBy(and(orderedListMarker, many1(textSpace)), paragraph), (result): OrderedListItem => {
+export const orderedListItem = map(precededBy(orderedListMarker, listItem), (result): OrderedListItem => {
 	return {
 		type: "OrderedListItem",
 		result
 	}
 })
 
-export const orderedList = map(succeededBy(many1(orderedListItem), optional(lineBreak)), (result): OrderedList => {
-	return {
+export const orderedList = map(succeededBy(many1(orderedListItem), optional(lineBreak)), (result): OrderedList => ({
 		type: "OrderedList",
 		result
-	}
-})
+	})
+)
 
 export const list = or(unorderedList, orderedList)
 
@@ -316,10 +315,9 @@ export const blockQuote = map(succeededBy(precededBy(and(greatherThanSign, manyN
 	}
 })
 
-const link_text = delimitedBy(open_bracket, rawText, close_bracket)
-// resolver situação de nao poder ter o fecha parenteses no link, talvz involver os literalcharacters aqui
-// Deixar como charsWithoutSpace mesmo, a pessoa que ajuste a url para colocaro / e usar o literais
-const link_url = delimitedBy(open_parenthesis, concat(many1(allButSpecificChars([SPACE, LINE_BREAK, TAB, CLOSE_PARENTHESIS]))), close_parenthesis)
+const link_text = delimitedBy(openBracket, rawText, closeBracket)
+// If link contains special characters (()[]*->) it will be necessary to use the / as literal indicator
+const link_url = delimitedBy(openParenthesis, concat(many1(charsWithoutSpace)), closeParenthesis)
 
 const link = map(and(link_text, link_url), ([text, url]) => {
 	return {
@@ -329,11 +327,7 @@ const link = map(and(link_text, link_url), ([text, url]) => {
 	}
 })
 
-export const trailingBrekLine = map(lineBreak, (_): SpareBreakLine => {
-	return {
-		type: "SpareBreakLine",
-	}
-})
+export const trailingBrekLine = map(lineBreak, (_): SpareBreakLine => ({type: "SpareBreakLine" }))
 
 export const markdownDocument = map(many1(or5(heading, list, paragraph, blockQuote, trailingBrekLine)), (result): HtmlDocument => {
 	return {

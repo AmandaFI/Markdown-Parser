@@ -2,6 +2,8 @@
 // https://marked.js.org/using_pro#lexer
 // https://www.yongliangliu.com/blog/rmark/
 
+/// <reference lib="deno.ns" />
+
 export const SPACE = " ";
 const EMPTY = "";
 export const TAB = "\t";
