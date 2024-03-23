@@ -18,11 +18,19 @@ const buildAst = (text: string) => {
   return ast
 }
 
+const blockQuoteStyle = `background-color:#f9f9f9;border-left: 10px solid #ccc;margin: 1.5em 10px;padding: 1em 10px .1em;`
+
+// background: #f9f9f9;
+//   border-left: 10px solid #ccc;
+//   margin: 1.5em 10px;
+//   padding: 1em 10px .1em;
+//   quotes: "\201C""\201D""\2018""\2019";
+
 const parseAst = (part: PartType): string => {
-  printObject(part)
+  // printObject(part)
   switch (part.type) {
     case "Document":
-      return part.result.reduce((acc, element) => acc.concat(parseAst(element)), "");
+      return `<!DOCTYPE html><html>${part.result.reduce((acc, element) => acc.concat(parseAst(element)), "")}</html>`;
     case "Heading":
       return `<h${part.hashCount.toString()}>${parseAst(part.result)}</h${part.hashCount.toString()}>`
     case "UnorderedList":
@@ -34,7 +42,7 @@ const parseAst = (part: PartType): string => {
     case "OrderedListItem":
       return `<li>${part.result.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
     case "BlockQuote":
-      return `<blockquote>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</blockquote>`
+      return `<blockquote style="${blockQuoteStyle}">${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</blockquote>`
     case "Image":
       return `<img src=${part.source} alt=${parseAst(part.altText)}></img>`
     case "Link":

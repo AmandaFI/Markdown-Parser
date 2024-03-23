@@ -234,7 +234,7 @@ export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), (res
 	})
 );
 
-const ref_text = delimitedBy(openBracket, rawText, closeBracket)
+const ref_text = delimitedBy(openBracket, or3(rawText, italicText, boldText), closeBracket)
 
 // If ref contains special characters (()[]*->/) it will be necessary to use the / as literal indicator
 const ref = delimitedBy(openParenthesis, concat(many1(charsWithoutSpace)), closeParenthesis)
@@ -268,7 +268,6 @@ export const line = map(and3(or(link, possibleLineStarters), manyN(or4(boldText,
 );
 
 export const paragraph = map(and(many1(line), optional(lineBreak)), ([result, _]): Paragraph => {
-// export const paragraph = map(precededBy(optional(many1(jumpLine)), and(many1(line), optional(jumpLine))), ([result, _]): Paragraph => {
 	return {
 		type: "Paragraph",
 		result,
@@ -367,9 +366,8 @@ export const markdownDocument = map(many1(or6(image, heading, list, paragraph, b
 
 // TODO
 
-// incluir link no tipo de text dentro de italic e bold
 // evitar que o parser quebre, talvez criar um spareSpace parser
-// - Criar testes para os parsers de parágrafo
+// - Criar testes para os parsers de parágrafo, link e image, and4
 // - Implementar outros elementos como links, images and code
 // - testar melhor as listas ordenadas e não ordenadas
 // - criar teste para unordered e ordered list and items

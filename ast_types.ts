@@ -15,7 +15,7 @@ export type Bold = {
 
 export type Link = {
 	type: "Link",
-	text: Text,
+	text: Text | Italic | Bold,
 	url: string
 }
 
@@ -52,9 +52,7 @@ export type UnorderedList = {
 
 export type OrderedListItem = {
 	type: "OrderedListItem",
-	// result: Array<Line>
 	result: Paragraph
-
 }
 
 export type OrderedList = {
@@ -69,7 +67,7 @@ export type BlockQuote = {
 
 export type Image = {
 	type: "Image",
-	altText: Text,
+	altText: Text | Italic | Bold,
 	source: string
 }
 
