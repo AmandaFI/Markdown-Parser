@@ -13,6 +13,12 @@ export type Bold = {
 	result: Array<Text | Italic>
 }
 
+export type Link = {
+	type: "Link",
+	text: Text,
+	url: string
+}
+
 export type Line = {
 	type: "Line",
 	result: Array<Text | Italic | Bold | Link>
@@ -61,10 +67,10 @@ export type BlockQuote = {
 	result: Array<Heading | UnorderedList | OrderedList | Paragraph>
 }
 
-export type Link = {
-	type: "Link",
-	text: Text,
-	url: string
+export type Image = {
+	type: "Image",
+	altText: Text,
+	source: string
 }
 
 export type SpareBreakLine = {
@@ -73,9 +79,9 @@ export type SpareBreakLine = {
 
 export type HtmlDocument = {
 	type: "Document",
-	result: Array<Heading | UnorderedList | OrderedList | Paragraph | BlockQuote | SpareBreakLine>
+	result: Array<Heading | UnorderedList | OrderedList | Image | Paragraph | BlockQuote | SpareBreakLine>
 }
 
 
 
-export type PartType = Text | Italic | Bold | Line | Paragraph | HtmlDocument | Heading | UnorderedListItem | UnorderedList | OrderedListItem | OrderedList | BlockQuote | SpareBreakLine | Link
+export type PartType = Text | Italic | Bold | Line | Paragraph | HtmlDocument | Heading | UnorderedListItem | UnorderedList | OrderedListItem | OrderedList | BlockQuote | SpareBreakLine | Link | Image

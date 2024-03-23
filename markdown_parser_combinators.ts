@@ -1,8 +1,9 @@
-import { BlockQuote, Bold, Heading, HtmlDocument, Italic, Line, Link, OrderedList, OrderedListItem, Paragraph, SpareBreakLine, Text, UnorderedList, UnorderedListItem } from "./ast_types.ts";
+import { BlockQuote, Bold, Heading, HtmlDocument, Image, Italic, Line, Link, OrderedList, OrderedListItem, Paragraph, SpareBreakLine, Text, UnorderedList, UnorderedListItem } from "./ast_types.ts";
 import {
 	allButSpecificChars,
 	and,
 	and3,
+	and4,
 	andNot,
 	concat,
 	delimitedBy,
@@ -41,6 +42,7 @@ const OPEN_BRACKET = "["
 const CLOSE_BRACKET = "]"
 const OPEN_PARENTHESIS = "("
 const CLOSE_PARENTHESIS = ")"
+const EXCLAMATION_POINT = "!"
 
 const LITERAL_LINE_BREAK = "/\n";
 const LITERAL_TAB = "/\t";
@@ -52,6 +54,8 @@ const LITERAL_OPEN_BRACKET = "/["
 const LITERAL_CLOSE_BRACKET = "/]"
 const LITERAL_OPEN_PARENTHESIS = "/("
 const LITERAL_CLOSE_PARENTHESIS = "/)"
+const LITERAL_EXCLAMATION_POINT = "/!"
+
 
 const literalLineBreak = specificCharSequence(LITERAL_LINE_BREAK);
 const literalTab = specificCharSequence(LITERAL_TAB);
@@ -63,6 +67,7 @@ const literalOpenBracket = specificChar(LITERAL_OPEN_BRACKET)
 const literalCloseBracket = specificChar(LITERAL_CLOSE_BRACKET)
 const literalOpenParenthesis = specificChar(LITERAL_OPEN_PARENTHESIS)
 const literalCloseParenthesis = specificChar(LITERAL_CLOSE_PARENTHESIS)
+const literalExclamationPoint = specificChar(LITERAL_EXCLAMATION_POINT)
 
 
 const lineBreak = specificChar(LINE_BREAK);
@@ -77,6 +82,7 @@ const openBracket = specificChar(OPEN_BRACKET)
 const closeBracket = specificChar(CLOSE_BRACKET)
 const openParenthesis = specificChar(OPEN_PARENTHESIS)
 const closeParenthesis = specificChar(CLOSE_PARENTHESIS)
+const exclamationPoint = specificChar(EXCLAMATION_POINT)
 
 
 export const spaceSequence = map(many1(space), result => {
@@ -138,10 +144,15 @@ export const literalMathOperators = or3(
 	map(literalGreaterThanSign, _ => GREATER_THAN_SIGN),
 )
 
+export const literalPontuationSymbols = or(
+	map(literalRightBar, _ => RIGHT_BAR),
+	map(literalExclamationPoint, _ => EXCLAMATION_POINT)
+)
+
 export const literalSpecialChars = or6(
 	map(literalLineBreak, _ => LINE_BREAK),
 	map(literalTab, _ => TAB),
-	map(literalRightBar, _ => RIGHT_BAR),
+	literalPontuationSymbols,
 	literalMathOperators,
 	literalIsolationChars,
 	literalOrderedListMarker
@@ -223,11 +234,12 @@ export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), (res
 	})
 );
 
-const link_text = delimitedBy(openBracket, rawText, closeBracket)
-// If link contains special characters (()[]*->) it will be necessary to use the / as literal indicator
-const link_url = delimitedBy(openParenthesis, concat(many1(charsWithoutSpace)), closeParenthesis)
+const ref_text = delimitedBy(openBracket, rawText, closeBracket)
 
-const link = map(and(link_text, link_url), ([text, url]): Link => {
+// If ref contains special characters (()[]*->/) it will be necessary to use the / as literal indicator
+const ref = delimitedBy(openParenthesis, concat(many1(charsWithoutSpace)), closeParenthesis)
+
+export const link = map(and(ref_text, ref), ([text, url]): Link => {
 	return {
 		type: "Link",
 		text,
@@ -235,9 +247,16 @@ const link = map(and(link_text, link_url), ([text, url]): Link => {
 	}
 })
 
+export const image = map(and4(exclamationPoint, ref_text, ref, optional(spaceSequence)), ([_, text, source, __]): Image => ({
+	type: "Image",
+	altText: text,
+	source
+}))
+
+
 export const isolationChars = or4(openParenthesis, closeParenthesis, openBracket, closeBracket)
 export const mathOperators = or(minusSign, greatherThanSign)
-export const possibleLineStarters = map(not(or4(mathOperators, orderedListMarker, isolationChars, lineBreak)), (result):Text => ({
+export const possibleLineStarters = map(not(or5(mathOperators, orderedListMarker, isolationChars, exclamationPoint, lineBreak)), (result):Text => ({
 	type: "Text",
 	result
 }))
@@ -324,7 +343,7 @@ export const blockQuote = map(succeededBy(precededBy(and(greatherThanSign, manyN
 
 export const trailingBrekLine = map(lineBreak, (_): SpareBreakLine => ({type: "SpareBreakLine" }))
 
-export const markdownDocument = map(many1(or5(heading, list, paragraph, blockQuote, trailingBrekLine)), (result): HtmlDocument => {
+export const markdownDocument = map(many1(or6(image, heading, list, paragraph, blockQuote, trailingBrekLine)), (result): HtmlDocument => {
 	return {
 		type: "Document",
 		result
@@ -371,27 +390,17 @@ export const markdownDocument = map(many1(or5(heading, list, paragraph, blockQuo
 // console.log(blockQuote("> this is a blockquote  \nabcd  \n## with a heading  \n- and a unordered list  \n\n\n\n"))
 // console.log(blockQuote("> this is a blockquote  \nwith multiple lines  \n## with a heading  \n- and a unordered list  \n1. and a ordered list\n\n"))
 
-console.log(link("[tests](https:////www.eafsef.com)"))
+// console.log(link("[tests](https:////www.eafsef.com)"))
 // console.log(link_text("[fsfe fsef]"))
 // console.log(link_text("[fsfe fsef ]"))
+
+// ![Nuerônio Biológico](./biological_neuron.png)
+console.log(image("![tests](https:////www.eafsef.com)"))
 
 
 
 
 // console.log(and3(not(minusSign), map(and(many1(or3(boldText, italicText, rawText)), optional(manyN(charsPrecededByBreakLine))), ([resultA, resultB]) => [resultA, ...resultB]), lineBreak)("abcdbffef\n\n"))
-
-
-// console.log(list("- this is a list item  - this is another list item"))
-
-
-// console.log(list("- item 1\n- item 2")[0][0][1].result)
-
-// console.log(boldText("**ab	/*c**")[0]);
-// console.log(boldText("**ab/*c**"));
-
-// console.log(italicText("*ab/* c*"));
-
-// console.log(boldText("***abc***")[0]);
 
 // // console.log(boldText("** abc**"));
 // // console.log(boldText("**abc *"));

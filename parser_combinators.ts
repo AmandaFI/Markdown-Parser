@@ -61,6 +61,9 @@ export const andNot3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC
 export const and3 = <A, B, C>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>): Parser<[A, B, C]> =>
 	map(and(and(parserA, parserB), parserC), ([resultAB, resultC]) => [...resultAB, resultC]);
 
+export const and4 = <A, B, C, D>(parserA: Parser<A>, parserB: Parser<B>, parserC: Parser<C>, parserD: Parser<D>): Parser<[A, B, C, D]> =>
+	map(and(and3(parserA, parserB, parserC), parserD), ([resultABC, resultD]) => [...resultABC, resultD]);
+
 export const any =
 	<A, B>(parserA: Parser<A>, parserB: Parser<B>): Parser<EmptyString> =>
 	input => {

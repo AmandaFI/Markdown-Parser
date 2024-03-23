@@ -19,6 +19,7 @@ const buildAst = (text: string) => {
 }
 
 const parseAst = (part: PartType): string => {
+  printObject(part)
   switch (part.type) {
     case "Document":
       return part.result.reduce((acc, element) => acc.concat(parseAst(element)), "");
@@ -34,6 +35,8 @@ const parseAst = (part: PartType): string => {
       return `<li>${part.result.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</li>`
     case "BlockQuote":
       return `<blockquote>${part.result.reduce((acc: string, element) => acc.concat(parseAst(element)), "")}</blockquote>`
+    case "Image":
+      return `<img src=${part.source} alt=${parseAst(part.altText)}></img>`
     case "Link":
       return `<a href=${part.url}>${parseAst(part.text)}</a>`
     case "Paragraph":
