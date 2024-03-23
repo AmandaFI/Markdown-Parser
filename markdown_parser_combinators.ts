@@ -1,9 +1,8 @@
-import { BlockQuote, Bold, Heading, HtmlDocument, Image, Italic, Line, Link, OrderedList, OrderedListItem, Paragraph, SpareBreakLine, Text, UnorderedList, UnorderedListItem } from "./ast_types.ts";
+import { BlockQuote, Bold, Heading, HtmlDocument, Image, Italic, Line, Link, OrderedList, OrderedListItem, Paragraph, SpareBreakLine, SpareSpace, Text, UnorderedList, UnorderedListItem } from "./ast_types.ts";
 import {
 	allButSpecificChars,
 	and,
 	and3,
-	and4,
 	andNot,
 	concat,
 	delimitedBy,
@@ -29,6 +28,8 @@ import {
 // primiero o ele tenta dar match com o parserA, caso não de ele se arrepende da decisão, retorna ao ponto
 // de antes de usar o parserA e tenta com o parserB dessa vez, isso consite em backtracking.
 
+const ESCAPE_CHARACTER = "/"
+
 const SPACE = " ";
 const TAB = "\t";
 const LINE_BREAK = "\n";
@@ -44,31 +45,17 @@ const OPEN_PARENTHESIS = "("
 const CLOSE_PARENTHESIS = ")"
 const EXCLAMATION_POINT = "!"
 
-const LITERAL_LINE_BREAK = "/\n";
-const LITERAL_TAB = "/\t";
-const LITERAL_ASTERISK = "/*";
-const LITERAL_RIGHT_BAR = "//";
-const LITERAL_MINUS_SIGN = "/-"
-const LITERAL_GREATER_THAN_SIGN = "/>" 
-const LITERAL_OPEN_BRACKET = "/["
-const LITERAL_CLOSE_BRACKET = "/]"
-const LITERAL_OPEN_PARENTHESIS = "/("
-const LITERAL_CLOSE_PARENTHESIS = "/)"
-const LITERAL_EXCLAMATION_POINT = "/!"
-
-
-const literalLineBreak = specificCharSequence(LITERAL_LINE_BREAK);
-const literalTab = specificCharSequence(LITERAL_TAB);
-const literalAsterisk = specificCharSequence(LITERAL_ASTERISK);
-const literalRightBar = specificCharSequence(LITERAL_RIGHT_BAR);
-const literalMinusSign = specificCharSequence(LITERAL_MINUS_SIGN);
-const literalGreaterThanSign = specificCharSequence(LITERAL_GREATER_THAN_SIGN);
-const literalOpenBracket = specificChar(LITERAL_OPEN_BRACKET)
-const literalCloseBracket = specificChar(LITERAL_CLOSE_BRACKET)
-const literalOpenParenthesis = specificChar(LITERAL_OPEN_PARENTHESIS)
-const literalCloseParenthesis = specificChar(LITERAL_CLOSE_PARENTHESIS)
-const literalExclamationPoint = specificChar(LITERAL_EXCLAMATION_POINT)
-
+const literalLineBreak = specificCharSequence(ESCAPE_CHARACTER.concat(LINE_BREAK));
+const literalTab = specificCharSequence(ESCAPE_CHARACTER.concat(TAB));
+const literalAsterisk = specificCharSequence(ESCAPE_CHARACTER.concat(ASTERISK));
+const literalRightBar = specificCharSequence(ESCAPE_CHARACTER.concat(RIGHT_BAR));
+const literalMinusSign = specificCharSequence(ESCAPE_CHARACTER.concat(MINUS_SIGN));
+const literalGreaterThanSign = specificCharSequence(ESCAPE_CHARACTER.concat(GREATER_THAN_SIGN));
+const literalOpenBracket = specificCharSequence(ESCAPE_CHARACTER.concat(OPEN_BRACKET))
+const literalCloseBracket = specificCharSequence(ESCAPE_CHARACTER.concat(CLOSE_BRACKET))
+const literalOpenParenthesis = specificCharSequence(ESCAPE_CHARACTER.concat(OPEN_PARENTHESIS))
+const literalCloseParenthesis = specificCharSequence(ESCAPE_CHARACTER.concat(CLOSE_PARENTHESIS))
+const literalExclamationPoint = specificCharSequence(ESCAPE_CHARACTER.concat(EXCLAMATION_POINT))
 
 const lineBreak = specificChar(LINE_BREAK);
 const space = specificChar(SPACE);
@@ -162,21 +149,6 @@ export const charsWithoutSpace = or(literalSpecialChars, textChars);
 export const charsPrecededBySpace = map(and(concat(many1(textSpace)), charsWithoutSpace), ([resultA, resultB]) => resultA.concat(resultB));
 export const charsOptionallyPrecededBySpace = map(and(concat(manyN(textSpace)), charsWithoutSpace), ([resultA, resultB]) => resultA.concat(resultB));
 
-
-// não mais necessário
-// export const literalAsteriscksChar = map(
-// 	and(
-// 		any(
-// 			// and3(boldIndicator, many1(and(textChars, optional(charsPrecededBySpace))), boldIndicator),
-// 			// and3(asterisk, many1(and(textChars, optional(charsPrecededBySpace))), asterisk)
-// 			and3(boldIndicator, many1(and(charsWithoutSpace, optional(charsPrecededBySpace))), boldIndicator),
-// 			and3(asterisk, many1(and(charsWithoutSpace, optional(charsPrecededBySpace))), asterisk)
-// 		),
-// 		concat(many1(asterisk))
-// 	),
-// 	result => ASTERISK.repeat(result[1].length)
-// );
-
 export const innerItalicText = map(map(and(charsWithoutSpace, concat(manyN(charsPrecededBySpace))), ([resultA, resultB]) => resultA.concat(resultB)),
 (result): Text => ({
 		type: "Text",
@@ -247,7 +219,7 @@ export const link = map(and(ref_text, ref), ([text, url]): Link => {
 	}
 })
 
-export const image = map(and4(exclamationPoint, ref_text, ref, optional(spaceSequence)), ([_, text, source, __]): Image => ({
+export const image = map(and3(exclamationPoint, ref_text, ref), ([_, text, source]): Image => ({
 	type: "Image",
 	altText: text,
 	source
@@ -340,9 +312,12 @@ export const blockQuote = map(succeededBy(precededBy(and(greatherThanSign, manyN
 	}
 })
 
-export const trailingBrekLine = map(lineBreak, (_): SpareBreakLine => ({type: "SpareBreakLine" }))
+export const spareBrekLine = map(lineBreak, (_): SpareBreakLine => ({type: "SpareBreakLine" }))
 
-export const markdownDocument = map(many1(or6(image, heading, list, paragraph, blockQuote, trailingBrekLine)), (result): HtmlDocument => {
+export const spareSpace = map(space, (_): SpareSpace => ({type: "SpareSpace" }))
+
+
+export const markdownDocument = map(many1(or6(image, heading, list, paragraph, blockQuote, spareBrekLine)), (result): HtmlDocument => {
 	return {
 		type: "Document",
 		result
@@ -366,11 +341,9 @@ export const markdownDocument = map(many1(or6(image, heading, list, paragraph, b
 
 // TODO
 
-// evitar que o parser quebre, talvez criar um spareSpace parser
-// - Criar testes para os parsers de parágrafo, link e image, and4
-// - Implementar outros elementos como links, images and code
+// - Criar testes para os parsers de parágrafo, and4, unordered e ordered list and items
+// - Implementar outros elementos como code
 // - testar melhor as listas ordenadas e não ordenadas
-// - criar teste para unordered e ordered list and items
 // - fazer testes para os parsers intermediarios (number, charsWithoutSpace, ...)
 
 // -----------------------------------------------------------------------------------------
@@ -441,12 +414,3 @@ console.log(image("![tests](https:////www.eafsef.com)"))
 // console.log(line("*teste* **teste2** abcd  cdc /*  fasfsae"))
 
 // console.log(paragraph("*teste* **teste2** abcd  cdc /*  \n*teste* **teste2** abcd  cdc /*  \n\n\n*teste* **teste2** abcd  cdc /*  \n*teste* **teste2** abcd  cdc /*"))
-
-// console.log(markdownDocument("*This* **is** the /*  \n*first* **paragraph** abcd  cdc /*  \n\n\n*This* **is** the  second /*  \n*paragraph* **teste2** abcd  cdc /*"))
-
-
-
-// console.log(heading("titulo um"))
-// console.log(heading("### titulo um"))
-// console.log(heading("######titulo um"))
-// console.log(heading("### titulo um\nfasefas"))

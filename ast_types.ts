@@ -75,11 +75,15 @@ export type SpareBreakLine = {
 	type: "SpareBreakLine"
 }
 
+export type SpareSpace = {
+	type: "SpareSpace"
+}
+
 export type HtmlDocument = {
 	type: "Document",
-	result: Array<Heading | UnorderedList | OrderedList | Image | Paragraph | BlockQuote | SpareBreakLine>
+	result: Array<Heading | UnorderedList | OrderedList | Image | Paragraph | BlockQuote | SpareBreakLine | SpareSpace>
 }
 
 
 
-export type PartType = Text | Italic | Bold | Line | Paragraph | HtmlDocument | Heading | UnorderedListItem | UnorderedList | OrderedListItem | OrderedList | BlockQuote | SpareBreakLine | Link | Image
+export type PartType = Text | Italic | Bold | Line | Paragraph | HtmlDocument | Heading | UnorderedListItem | UnorderedList | OrderedListItem | OrderedList | BlockQuote | SpareBreakLine | Link | Image | SpareSpace

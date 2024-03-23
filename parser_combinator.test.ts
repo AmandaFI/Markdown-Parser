@@ -28,7 +28,7 @@ import {
 	not,
 } from "./parser_combinators.ts";
 
-import { boldText, italicText, literalSpecialChars, textChars, textSpace, rawText, line, heading } from "./markdown_parser_combinators.ts";
+import { boldText, italicText, literalSpecialChars, textChars, textSpace, rawText, line, heading, link, image } from "./markdown_parser_combinators.ts";
 
 // deno test parser_combinator.test.ts
 
@@ -313,18 +313,6 @@ describe("Markdown parsers:", () => {
 		assertArrayIncludes(literalSpecialChars("\tabc"), [new Error(), "\tabc"]);
 	});
 
-	// describe("LiteralAsteriscksChar:", () => {
-	// 	assertArrayIncludes(literalAsteriscksChar("*abc"), ["*", "abc"]);
-	// 	assertArrayIncludes(literalAsteriscksChar("* abc"), ["*", " abc"]);
-	// 	assertArrayIncludes(literalAsteriscksChar("**abc"), ["**", "abc"]);
-	// 	assertArrayIncludes(literalAsteriscksChar("** abc"), ["**", " abc"]);
-	// 	assertArrayIncludes(literalAsteriscksChar("**abc*"), ["**", "abc*"]);
-	// 	assertArrayIncludes(literalAsteriscksChar("**abc **"), ["**", "abc **"]);
-	// 	assertArrayIncludes(literalAsteriscksChar("** abc**"), ["**", " abc**"]);
-	// 	assertArrayIncludes(literalAsteriscksChar("*abc*"), [new Error(), "*abc*"]);
-	// 	assertArrayIncludes(literalAsteriscksChar("**abc**"), [new Error(), "**abc**"]);
-	// });
-
 	describe("RawText:", () => {
 		assertArrayIncludes(rawText("abc  ef /*"), [{
 			type: "Text",
@@ -466,5 +454,32 @@ describe("Markdown parsers:", () => {
 		}, ""]);
 		assertArrayIncludes(heading("###This is not a heading"), [new Error(), "###This is not a heading"]);
 		assertArrayIncludes(heading("####### This is not a heading"), [new Error(), "####### This is not a heading"]);
+	});
+
+	describe("Link:", () => {
+		assertArrayIncludes(link("[This is a link](http:////www.abc.com)"), [{
+			type: "Link",
+			text: {
+				type: "Text",
+				result: "This is a link"
+			},
+			url: "http://www.abc.com"
+		}, ""]);
+		assertArrayIncludes(link("[This is a link]()"), [new Error(), "[This is a link]()"]);
+		assertArrayIncludes(link("[](http:////www.abc.com)"), [new Error(), "[](http:////www.abc.com)"]);
+	});
+
+	describe("Image:", () => {
+		assertArrayIncludes(image("![This is an image](.//localPath)"), [{
+			type: "Image",
+			altText: {
+				type: "Text",
+				result: "This is an image"
+			},
+			source: "./localPath"
+		}, ""]);
+		assertArrayIncludes(image("[This is an image](.//localPath)"), [new Error(), "[This is an image](.//localPath)"]);
+		assertArrayIncludes(image("[This is an image]()"), [new Error(), "[This is an image]()"]);
+		assertArrayIncludes(image("[](.//localPath)"), [new Error(), "[](.//localPath)"]);
 	});
 });

@@ -58,6 +58,7 @@ const parseAst = (part: PartType): string => {
     case "Text":
       return part.result
     case "SpareBreakLine":
+    case "SpareSpace":
       return ""
     default: {
       // https://www.typescriptlang.org/docs/handbook/2/narrowing.html#exhaustiveness-checking
