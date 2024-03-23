@@ -1,26 +1,26 @@
-import { BlockQuote, Bold, Heading, HtmlDocument, Italic, Line, OrderedList, OrderedListItem, Paragraph, Text, SpareBreakLine as SpareBreakLine, UnorderedList, UnorderedListItem } from "./ast_types.ts";
+import { BlockQuote, Bold, Heading, HtmlDocument, Italic, Line, Link, OrderedList, OrderedListItem, Paragraph, SpareBreakLine, Text, UnorderedList, UnorderedListItem } from "./ast_types.ts";
 import {
+	allButSpecificChars,
 	and,
-	map,
+	and3,
+	andNot,
+	concat,
+	delimitedBy,
 	many1,
 	manyN,
-	specificCharSequence,
-	specificChar,
-	or,
-	concat,
-	andNot,
-	allButSpecificChars,
-	optional,
-	or3,
-	succeededBy,
-	delimitedBy,
-	or4,
-	and3,
-	precededBy,
-	or5,
+	map,
 	not,
-	specificChars,
+	optional,
+	or,
+	or3,
+	or4,
+	or5,
 	or6,
+	precededBy,
+	specificChar,
+	specificCharSequence,
+	specificChars,
+	succeededBy,
 } from "./parser_combinators.ts";
 // remove .ts to run using vscode terminal e add .ts to run on normal terminal
 
@@ -223,12 +223,28 @@ export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), (res
 	})
 );
 
-export const isolationChars = or4(openParenthesis, closeParenthesis, openBracket, closeBracket)
-export const nonLineStarters = not(or5(minusSign, orderedListMarker, greatherThanSign, isolationChars, lineBreak))
+const link_text = delimitedBy(openBracket, rawText, closeBracket)
+// If link contains special characters (()[]*->) it will be necessary to use the / as literal indicator
+const link_url = delimitedBy(openParenthesis, concat(many1(charsWithoutSpace)), closeParenthesis)
 
-export const line = map(and3(nonLineStarters, many1(or3(boldText, italicText, rawText)), optional(sentenceLineBreak)), ([_, result, __]): Line => ({
+const link = map(and(link_text, link_url), ([text, url]): Link => {
+	return {
+		type: "Link",
+		text,
+		url
+	}
+})
+
+export const isolationChars = or4(openParenthesis, closeParenthesis, openBracket, closeBracket)
+export const mathOperators = or(minusSign, greatherThanSign)
+export const possibleLineStarters = map(not(or4(mathOperators, orderedListMarker, isolationChars, lineBreak)), (result):Text => ({
+	type: "Text",
+	result
+}))
+
+export const line = map(and3(or(link, possibleLineStarters), manyN(or4(boldText, italicText, rawText, link)), optional(sentenceLineBreak)), ([resultA, resultB, __]): Line => ({
 		type: "Line",
-		result
+		result: resultA.type != "Text" ? [resultA, ...resultB] : resultB
 	})
 );
 
@@ -303,18 +319,6 @@ export const blockQuote = map(succeededBy(precededBy(and(greatherThanSign, manyN
 	return {
 		type: "BlockQuote",
 		result
-	}
-})
-
-const link_text = delimitedBy(openBracket, rawText, closeBracket)
-// If link contains special characters (()[]*->) it will be necessary to use the / as literal indicator
-const link_url = delimitedBy(openParenthesis, concat(many1(charsWithoutSpace)), closeParenthesis)
-
-const link = map(and(link_text, link_url), ([text, url]) => {
-	return {
-		type: "Link",
-		text,
-		url
 	}
 })
 
