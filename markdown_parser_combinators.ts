@@ -48,6 +48,7 @@ const EXCLAMATION_POINT = "!"
 const literalLineBreak = specificCharSequence(ESCAPE_CHARACTER.concat(LINE_BREAK));
 const literalTab = specificCharSequence(ESCAPE_CHARACTER.concat(TAB));
 const literalAsterisk = specificCharSequence(ESCAPE_CHARACTER.concat(ASTERISK));
+const literalHash = specificCharSequence(ESCAPE_CHARACTER.concat(HASH))
 const literalRightBar = specificCharSequence(ESCAPE_CHARACTER.concat(RIGHT_BAR));
 const literalMinusSign = specificCharSequence(ESCAPE_CHARACTER.concat(MINUS_SIGN));
 const literalGreaterThanSign = specificCharSequence(ESCAPE_CHARACTER.concat(GREATER_THAN_SIGN));
@@ -70,6 +71,11 @@ const closeBracket = specificChar(CLOSE_BRACKET)
 const openParenthesis = specificChar(OPEN_PARENTHESIS)
 const closeParenthesis = specificChar(CLOSE_PARENTHESIS)
 const exclamationPoint = specificChar(EXCLAMATION_POINT)
+
+const toTexType = (result: string): Text => ({
+	type: "Text",
+	result
+})
 
 
 export const spaceSequence = map(many1(space), result => {
@@ -149,12 +155,7 @@ export const charsWithoutSpace = or(literalSpecialChars, textChars);
 export const charsPrecededBySpace = map(and(concat(many1(textSpace)), charsWithoutSpace), ([resultA, resultB]) => resultA.concat(resultB));
 export const charsOptionallyPrecededBySpace = map(and(concat(manyN(textSpace)), charsWithoutSpace), ([resultA, resultB]) => resultA.concat(resultB));
 
-export const innerItalicText = map(map(and(charsWithoutSpace, concat(manyN(charsPrecededBySpace))), ([resultA, resultB]) => resultA.concat(resultB)),
-(result): Text => ({
-		type: "Text",
-		result
-	})
-)
+export const innerItalicText = map(and(charsWithoutSpace, concat(manyN(charsPrecededBySpace))), ([resultA, resultB]) => toTexType(resultA.concat(resultB)))
 
 export const italicText = map(delimitedBy(asterisk, innerItalicText, asterisk), (result): Italic => ({
 		type: "Italic",
@@ -165,26 +166,15 @@ export const italicText = map(delimitedBy(asterisk, innerItalicText, asterisk), 
 export const innerBoldText = map(
 	and(
 		or(
-			map(charsWithoutSpace, (result): Text => ({
-					type: "Text",
-					result
-				})
-			),
+			map(charsWithoutSpace, toTexType),
 			italicText
 		),
 		manyN(
 			or(
-				map(concat(many1(charsOptionallyPrecededBySpace)), (result): Text => ({
-						type: "Text",
-						result
-					})
-				), 
+				map(concat(many1(charsOptionallyPrecededBySpace)), toTexType), 
 				map(and(optional(concat(manyN(textSpace))), italicText), ([resultA, resultB]): Italic => ({
 						type: "Italic",
-						result: {
-							type: "Text",
-							result: resultA.concat(resultB.result.result)
-						}
+						result: toTexType(resultA.concat(resultB.result.result))
 					})
 				)
 			)
@@ -200,11 +190,7 @@ export const boldText = map(delimitedBy(boldIndicator, innerBoldText, boldIndica
 	})
 );
 
-export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), (result): Text => ({
-		type: "Text",
-		result
-	})
-);
+export const rawText = map(concat(many1(or(charsWithoutSpace, textSpace))), toTexType);
 
 const ref_text = delimitedBy(openBracket, or3(rawText, italicText, boldText), closeBracket)
 
@@ -228,10 +214,9 @@ export const image = map(and3(exclamationPoint, ref_text, ref), ([_, text, sourc
 
 export const isolationChars = or4(openParenthesis, closeParenthesis, openBracket, closeBracket)
 export const mathOperators = or(minusSign, greatherThanSign)
-export const possibleLineStarters = map(not(or5(mathOperators, orderedListMarker, isolationChars, exclamationPoint, lineBreak)), (result):Text => ({
-	type: "Text",
-	result
-}))
+export const ponctuationChars = or(exclamationPoint, literalHash)
+
+export const possibleLineStarters = map(not(or5(mathOperators, orderedListMarker, isolationChars, ponctuationChars, lineBreak)), toTexType)
 
 export const line = map(and3(or(link, possibleLineStarters), manyN(or4(boldText, italicText, rawText, link)), optional(sentenceLineBreak)), ([resultA, resultB, __]): Line => ({
 		type: "Line",
@@ -267,10 +252,7 @@ export const heading = map(
 	([hashes, text]): Heading => ({
 			type: "Heading",
 			hashCount: hashes.quantity,
-			result: {
-				type: "Text",
-				result: text
-			}
+			result: toTexType(text)
 	})
 );
 
@@ -316,8 +298,10 @@ export const spareBrekLine = map(lineBreak, (_): SpareBreakLine => ({type: "Spar
 
 export const spareSpace = map(space, (_): SpareSpace => ({type: "SpareSpace" }))
 
+export const spareChars = or(spareBrekLine, spareSpace)
 
-export const markdownDocument = map(many1(or6(image, heading, list, paragraph, blockQuote, spareBrekLine)), (result): HtmlDocument => {
+
+export const markdownDocument = map(many1(or6(image, heading, list, paragraph, blockQuote, spareChars)), (result): HtmlDocument => {
 	return {
 		type: "Document",
 		result
