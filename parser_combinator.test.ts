@@ -26,9 +26,10 @@ import {
 	empty,
 	andNot3,
 	not,
+  and4,
 } from "./parser_combinators.ts";
 
-import { boldText, italicText, literalSpecialChars, textChars, textSpace, rawText, line, heading, link, image } from "./markdown_parser_combinators.ts";
+import { blockQuote, boldText, italicText, literalSpecialChars, textChars, textSpace, rawText, line, heading, link, image, listItem, unorderedListItem, orderedListItem, unorderedList, orderedList, paragraph } from "./markdown_parser_combinators.ts";
 
 // deno test parser_combinator.test.ts
 
@@ -64,6 +65,9 @@ describe("Level 1 parsers:", () => {
 		it("And3", () => {
 			assertArrayIncludes(and3(parserA, parserB, parserC)("abc"), [["a", "b", "c"], ""]);
 			assertArrayIncludes(and3(parserA, parserB, parserC)("abbc"), [new Error(), "abbc"]);
+		});
+		it("And4", () => {
+			assertArrayIncludes(and4(parserA, parserB, parserC, parserD)("abcd"), [["a", "b", "c", "d"], ""]);
 		});
 	});
 
@@ -308,6 +312,14 @@ describe("Markdown parsers:", () => {
 		assertArrayIncludes(literalSpecialChars("/\tabc"), ["\t", "abc"]);
 		assertArrayIncludes(literalSpecialChars("/*abc"), ["*", "abc"]);
 		assertArrayIncludes(literalSpecialChars("//abc"), ["/", "abc"]);
+		assertArrayIncludes(literalSpecialChars("/>abc"), [">", "abc"]);
+		assertArrayIncludes(literalSpecialChars("/-abc"), ["-", "abc"]);
+		assertArrayIncludes(literalSpecialChars("/#abc"), ["#", "abc"]);
+		assertArrayIncludes(literalSpecialChars("/(abc"), ["(", "abc"]);
+		assertArrayIncludes(literalSpecialChars("/)abc"), [")", "abc"]);
+		assertArrayIncludes(literalSpecialChars("/[abc"), ["[", "abc"]);
+		assertArrayIncludes(literalSpecialChars("/]abc"), ["]", "abc"]);
+		assertArrayIncludes(literalSpecialChars("/!abc"), ["!", "abc"]);
 
 		assertArrayIncludes(literalSpecialChars("\nabc"), [new Error(), "\nabc"]);
 		assertArrayIncludes(literalSpecialChars("\tabc"), [new Error(), "\tabc"]);
@@ -339,50 +351,53 @@ describe("Markdown parsers:", () => {
 	});
 
 	describe("BoldText:", () => {
-		assertArrayIncludes(boldText("**abc**"), [{
-			type: "Bold",
-			result: [{
-				type: "Text",
-				result: "abc",
-			}],
-		}, ""]);
-		assertArrayIncludes(boldText("**a  *b*  c**"), [{
-			type: "Bold",
-			result: [
-				{
+		it("Raw, Italic and Literal text", () => {
+			assertArrayIncludes(boldText("**abc**"), [{
+				type: "Bold",
+				result: [{
 					type: "Text",
-					result: "a",
-				},
-				{
-					type: "Italic",
-					result: {
+					result: "abc",
+				}],
+			}, ""]);
+			assertArrayIncludes(boldText("**a  *b*  c**"), [{
+				type: "Bold",
+				result: [
+					{
 						type: "Text",
-						result: "  b",
+						result: "a",
 					},
-				},
-				{
-					type: "Text",
-					result: "  c",
-				}
-			],
-		}, ""]);
-		assertArrayIncludes(boldText("**ab/\t/*c**"), [{
-			type: "Bold",
-			result: [
-				{
-					type: "Text",
-					result: "ab",
-				},
-				{
-					type: "Text",
-					result: "\t*c",
-				}
-			],
-		}, ""]);
-		assertArrayIncludes(boldText("** abc**"), [new Error(), "** abc**"]);
-		assertArrayIncludes(boldText("**abc **"), [new Error(), "**abc **"]);
-		assertArrayIncludes(boldText("** abc **"), [new Error(), "** abc **"]);
-
+					{
+						type: "Italic",
+						result: {
+							type: "Text",
+							result: "  b",
+						},
+					},
+					{
+						type: "Text",
+						result: "  c",
+					}
+				],
+			}, ""]);
+			assertArrayIncludes(boldText("**ab/\t/*c**"), [{
+				type: "Bold",
+				result: [
+					{
+						type: "Text",
+						result: "ab",
+					},
+					{
+						type: "Text",
+						result: "\t*c",
+					}
+				],
+			}, ""]);
+		});
+		it("Invalid sintax", () => {
+			assertArrayIncludes(boldText("** abc**"), [new Error(), "** abc**"]);
+			assertArrayIncludes(boldText("**abc **"), [new Error(), "**abc **"]);
+			assertArrayIncludes(boldText("** abc **"), [new Error(), "** abc **"]);
+		});
 	});
 	describe("Line", () => {
 		assertArrayIncludes(line("This is a text line."), [{
@@ -435,25 +450,78 @@ describe("Markdown parsers:", () => {
 		}, "This is another line."]);
 	});
 
+	describe("Paragraph:", () => {
+		assertArrayIncludes(paragraph("This is a line.  \nThis is another line.  \n\n"), [{
+			type: "Paragraph",
+			result: [
+				{
+					type: "Line",
+					result: [
+						{
+							type: "Text",
+							result: "This is a line."
+						}
+					]
+				},
+				{
+					type: "Line",
+					result: [
+						{
+							type: "Text",
+							result: "This is another line."
+						}
+					]
+				}
+			],
+		}, ""]);
+		assertArrayIncludes(paragraph("This is a line.  \nThis is another line."), [{
+			type: "Paragraph",
+			result: [
+				{
+					type: "Line",
+					result: [
+						{
+							type: "Text",
+							result: "This is a line."
+						}
+					]
+				},
+				{
+					type: "Line",
+					result: [
+						{
+							type: "Text",
+							result: "This is another line."
+						}
+					]
+				}
+			],
+		}, ""]);
+	});
+
 	describe("Heading:", () => {
-		assertArrayIncludes(heading("### This is a heading"), [{
-			type: "Heading",
-			hashCount: 3,
-			result: {
-				type: "Text",
-				result: "This is a heading"
-			},
-		}, ""]);
-		assertArrayIncludes(heading("### This is a heading      \n"), [{
-			type: "Heading",
-			hashCount: 3,
-			result: {
-				type: "Text",
-				result: "This is a heading      "
-			},
-		}, ""]);
-		assertArrayIncludes(heading("###This is not a heading"), [new Error(), "###This is not a heading"]);
-		assertArrayIncludes(heading("####### This is not a heading"), [new Error(), "####### This is not a heading"]);
+		it(() => {
+			assertArrayIncludes(heading("### This is a heading"), [{
+				type: "Heading",
+				hashCount: 3,
+				result: {
+					type: "Text",
+					result: "This is a heading"
+				},
+			}, ""]);
+			assertArrayIncludes(heading("### This is a heading      \n"), [{
+				type: "Heading",
+				hashCount: 3,
+				result: {
+					type: "Text",
+					result: "This is a heading      "
+				},
+			}, ""]);
+		});
+		it(() => {
+			assertArrayIncludes(heading("###This is not a heading"), [new Error(), "###This is not a heading"]);
+			assertArrayIncludes(heading("####### This is not a heading"), [new Error(), "####### This is not a heading"]);
+		})
 	});
 
 	describe("Link:", () => {
@@ -482,4 +550,202 @@ describe("Markdown parsers:", () => {
 		assertArrayIncludes(image("[This is an image]()"), [new Error(), "[This is an image]()"]);
 		assertArrayIncludes(image("[](.//localPath)"), [new Error(), "[](.//localPath)"]);
 	});
+
+	describe("Lists:", () => {
+		it("ListItem:", () => {
+			assertArrayIncludes(listItem(" This is an item.  \n"), [{
+				type: "Paragraph",
+				result: [{
+					type: "Line",
+					result: [
+							{
+								type: "Text",
+								result: "This is an item."
+							}
+						]
+				}],
+			}, ""]);
+			assertArrayIncludes(listItem(" This is an item.  \nWith multiple lines.  \n"), [{
+				type: "Paragraph",
+				result: [{
+					type: "Line",
+					result: [
+							{
+								type: "Text",
+								result: "This is an item."
+							}
+						]
+				},
+				{
+					type: "Line",
+					result: [
+							{
+								type: "Text",
+								result: "With multiple lines."
+							}
+						]
+				}
+			],
+			}, ""]);
+			assertArrayIncludes(listItem("It needs to start with a space.  \n"), [new Error(), "It needs to start with a space.  \n"]);
+		});
+		it("UnorederedItem:", () => {
+			assertArrayIncludes(unorderedListItem("- This is an unordered item.  \n"), [{
+				type: "UnorderedListItem",
+				result: {
+					type: "Paragraph",
+					result: [{
+						type: "Line",
+						result: [
+								{
+									type: "Text",
+									result: "This is an unordered item."
+								}
+							]
+					}]
+				}
+			}, ""]);
+			assertArrayIncludes(unorderedListItem("-This is not an unordered item.  \n"), [new Error(), "-This is not an unordered item.  \n"]);
+			assertArrayIncludes(unorderedListItem("This is not an unordered item.  \n"), [new Error(), "This is not an unordered item.  \n"]);
+		});
+		it("OrederedItem:", () => {
+			assertArrayIncludes(orderedListItem("1. This is an ordered item.  \n"), [{
+				type: "OrderedListItem",
+				result: {
+					type: "Paragraph",
+					result: [{
+						type: "Line",
+						result: [
+								{
+									type: "Text",
+									result: "This is an ordered item."
+								}
+							]
+					}]
+				}
+			}, ""]);
+			assertArrayIncludes(orderedListItem("1.This is not an ordered item.  \n"), [new Error(), "1.This is not an ordered item.  \n"]);
+			assertArrayIncludes(orderedListItem("This is not an ordered item.  \n"), [new Error(), "This is not an ordered item.  \n"]);
+		});
+		describe("UnorederedList:", () => {
+			assertArrayIncludes(unorderedList("- First **item.**  \n- Second item.  \n\n"), [{
+				type: "UnorderedList",
+				result: [
+					{
+						type: "UnorderedListItem",
+						result: {
+							type: "Paragraph",
+							result: [{
+								type: "Line",
+								result: [
+										{
+											type: "Text",
+											result: "First "
+										},
+										{
+											type: "Bold",
+											result: [{
+												type: "Text",
+												result: "item."
+											}]
+										}
+									]
+							}]
+						}
+					},
+					{
+						type: "UnorderedListItem",
+						result: {
+							type: "Paragraph",
+							result: [{
+								type: "Line",
+								result: [
+										{
+											type: "Text",
+											result: "Second item."
+										}
+									]
+							}]
+						}
+					}
+				]
+			}, ""]);
+		});
+		describe("OrederedList:", () => {
+			assertArrayIncludes(orderedList("1. First *item.*  \n2. Second item.  \n\n"), [{
+				type: "OrderedList",
+				result: [
+					{
+						type: "OrderedListItem",
+						result: {
+							type: "Paragraph",
+							result: [{
+								type: "Line",
+								result: [
+										{
+											type: "Text",
+											result: "First "
+										},
+										{
+											type: "Italic",
+											result: {
+												type: "Text",
+												result: "item."
+											}
+										}
+									]
+							}]
+						}
+					},
+					{
+						type: "OrderedListItem",
+						result: {
+							type: "Paragraph",
+							result: [{
+								type: "Line",
+								result: [
+										{
+											type: "Text",
+											result: "Second item."
+										}
+									]
+							}]
+						}
+					}
+				]
+			}, ""]);
+		});
+	});
+	describe("BlockQuote", () => {
+		assertArrayIncludes(blockQuote("> This is a line.  \nThis is another line.  \n\n"), [{
+			type: "BlockQuote",
+			result: [
+				{
+					type: "Paragraph",
+					result: [
+						{
+							type: "Line",
+							result: [
+								{
+									type: "Text",
+									result: "This is a line."
+								}
+							]
+						},
+						{
+							type: "Line",
+							result: [
+								{
+									type: "Text",
+									result: "This is another line."
+								}
+							]
+						}
+					]
+				}
+			]
+		}, ""]);
+		assertArrayIncludes(orderedListItem("> This is not ablockquote, missing break line ate the end."), [new Error(), "> This is not ablockquote, missing break line ate the end."]);
+		assertArrayIncludes(orderedListItem(">This is not ablockquote."), [new Error(), ">This is not ablockquote."]);
+	})
 });

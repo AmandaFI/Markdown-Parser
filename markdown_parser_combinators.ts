@@ -137,9 +137,10 @@ export const literalMathOperators = or3(
 	map(literalGreaterThanSign, _ => GREATER_THAN_SIGN),
 )
 
-export const literalPontuationSymbols = or(
+export const literalPontuationSymbols = or3(
 	map(literalRightBar, _ => RIGHT_BAR),
-	map(literalExclamationPoint, _ => EXCLAMATION_POINT)
+	map(literalExclamationPoint, _ => EXCLAMATION_POINT),
+	map(literalHash, _ => HASH)
 )
 
 export const literalSpecialChars = or6(
@@ -325,7 +326,7 @@ export const markdownDocument = map(many1(or6(image, heading, list, paragraph, b
 
 // TODO
 
-// - Criar testes para os parsers de parágrafo, and4, unordered e ordered list and items
+// - Talvez implementar listas dentro de listas e blockquotes dentro de blockquotes
 // - Implementar outros elementos como code
 // - testar melhor as listas ordenadas e não ordenadas
 // - fazer testes para os parsers intermediarios (number, charsWithoutSpace, ...)
@@ -343,11 +344,6 @@ export const markdownDocument = map(many1(or6(image, heading, list, paragraph, b
 // console.log(orderedList("1. abcdcd  \n2. desdsed  \n32. desdda  \n\n"))
 
 // console.log(blockQuote("> this is a blockquote  \nabcd  \n## with a heading  \n- and a unordered list  \n\n\n\n"))
-// console.log(blockQuote("> this is a blockquote  \nwith multiple lines  \n## with a heading  \n- and a unordered list  \n1. and a ordered list\n\n"))
-
-// console.log(link("[tests](https:////www.eafsef.com)"))
-// console.log(link_text("[fsfe fsef]"))
-// console.log(link_text("[fsfe fsef ]"))
 
 // ![Nuerônio Biológico](./biological_neuron.png)
 console.log(image("![tests](https:////www.eafsef.com)"))
