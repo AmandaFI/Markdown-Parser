@@ -7,7 +7,7 @@
 
 
 import { PartType } from "./ast_types.ts";
-import { markdownDocument } from "./markdown_parser_combinators.ts";
+import { markdownDocument } from "./markdownParser.ts";
 // remove .ts to run on vscode integrated terminal
 
 const text = await Deno.readTextFile("./content.txt");

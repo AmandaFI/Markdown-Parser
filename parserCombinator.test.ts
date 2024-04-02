@@ -27,9 +27,9 @@ import {
 	andNot3,
 	not,
   and4,
-} from "./parser_combinators.ts";
+} from "./parsers.ts";
 
-import { blockQuote, boldText, italicText, literalSpecialChars, textChars, textSpace, rawText, line, heading, link, image, listItem, unorderedListItem, orderedListItem, unorderedList, orderedList, paragraph } from "./markdown_parser_combinators.ts";
+import { blockQuote, boldText, italicText, literalSpecialChars, textChars, textSpace, rawText, line, heading, link, image, listItem, unorderedListItem, orderedListItem, unorderedList, orderedList, paragraph } from "./markdownParser.ts";
 
 // deno test parser_combinator.test.ts
 

@@ -21,7 +21,7 @@ import {
 	specificCharSequence,
 	specificChars,
 	succeededBy,
-} from "./parser_combinators.ts";
+} from "./parsers.ts";
 // remove .ts to run using vscode terminal e add .ts to run on normal terminal
 
 // em um or por exemplo, é possivel ver o backtracking dos parsers. Considerando um or(parserA, parserB),
@@ -315,7 +315,6 @@ export const markdownDocument = map(many1(or6(image, heading, list, paragraph, b
 // Obs:
 
 // Para usar caracteres especiais de forma literal deve-se colocar / antes, como mostrado nos literalSpecialChars
-// para mudar de ideia teria que reativar o literalAsteriscksChar e incluir em todos os parsers de Text (bold, italic, raw)
 
 // o paragrafo entende que é para pular de linha os havera 2 ou mais \n, o primeiro vira no final de uma line
 // e sera lido pelo parser de line, o segundo e os demais serão lidos pelo parser de paragraph
