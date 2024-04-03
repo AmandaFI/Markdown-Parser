@@ -33,7 +33,8 @@ The supported elements and their respective usage syntaxes are listed below:
 - **Literal Special Characters:** Some characters are used to indicate specific elements in Markdown. They will be referenced as special and to use these characters in their non special way it is necessary to use the scape character '/'. Example:
   > This /\* will write an asterisk.
 - **Paragraph:**
-- **Heading:**
+- **Heading:** One to six hashes followed by one or more spaces ending with Text. Example:
+  > \#\#\# This is a heading.
 - **Unordered List:**
 - **Ordered List:**
 - **Link:** The visible text has to be enclosed in square brackets and the URL, enclosed in parenthesis, has to immediatly follow the text. Example: 
@@ -49,7 +50,7 @@ To run this project the following prerequisite is necessary:
 
 - Deno installed
 
-If your system does not meet the mentioned prerequisite check the Deno [official installation documentation](https://docs.deno.com/runtime/manual/getting_started/installation) to download the right version for your operational system.
+If your system does not meet the mentioned prerequisite check the Deno [official installation documentation](https://docs.deno.com/runtime/manual/getting_started/installation) to download the right version for your operating system.
 
 Once you have Deno installed, clone this repository:
 
@@ -70,9 +71,10 @@ Run the parsers test:
 $ deno test parsersTests.test.ts
 ```
 
-TODO
-IMPLEMENTAR CODE
-CRIAR CONTENT.TXT
+TODO  
+IMPLEMENTAR CODE   
+CRIAR CONTENT.TXT  
+HORIZONTALNRULLER  
 
 - Falar do arquivo de testes e dos tipos
 - Print do formato da AST
