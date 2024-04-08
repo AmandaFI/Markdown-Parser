@@ -27,7 +27,11 @@ The supported elements and their respective usage syntaxes are listed below:
 - **Italic Text:** Text delimited by two asterisks. Example:
   > \*This will generate italic text.\*
 - **Bold Text:** Text delimited by four asterisks. Example:
-  > \*\*This will generate bold text.\*\* > \*\*\*This will generate bold italic text.\*\*\*
+
+  > \*\*This will generate bold text.\*\*
+
+  > \*\*\*This will generate bold italic text.\*\*\*
+
 - **Line break:** Sequence of two spaces followed by a \n.
 - **Literal Special Characters:** Some characters are used to indicate specific elements in Markdown. They will be referenced as special and to use these characters in their non special way it is necessary to use the scape character '/'. Example:
   > This /\* will write an asterisk.
@@ -42,7 +46,7 @@ The supported elements and their respective usage syntaxes are listed below:
 
   > **Obs:** So that the raw unordered list item syntax can be visualized and not instantly converted by the Markdown interpreter, a forward slash was added at the beggining. As detailed, in a real use case the forward slash MUST NOT be present on that position.
 
-- **Ordered List:** Each ordered list item has the following structure: number + point + space + Text + Line break. Example:
+- **Ordered List:** Each ordered list item has the following structure: number + dot + space + Text + Line break. Example:
 
   > /1. This is an ordered list item.
 
