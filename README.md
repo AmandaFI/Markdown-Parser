@@ -31,26 +31,29 @@ The supported elements and their respective usage syntaxes are listed below:
 - **Line break:** Sequence of two spaces followed by a \n.
 - **Literal Special Characters:** Some characters are used to indicate specific elements in Markdown. They will be referenced as special and to use these characters in their non special way it is necessary to use the scape character '/'. Example:
   > This /\* will write an asterisk.
-- **Paragraph:**
+- **Paragraph:** Sequence of Text elements ending with a line break.
+  > This is a paragraph.
+  > This is another paragraph.
 - **Heading:** One to six hashes followed by one or more spaces ending with Text. Example:
   > \#\#\# This is a heading.
-- **Unordered List:** Each ordered list item has the following structure: dash + space + Text + Line break. Example:
+- **Unordered List:** Each unordered list item has the following structure: dash + space + Text + Line break. Example:
 
-  > /- This is a unordered list item.
+  > /- This is an unordered list item.
 
   > **Obs:** So that the raw unordered list item syntax can be visualized and not instantly converted by the Markdown interpreter, a forward slash was added at the beggining. As detailed, in a real use case the forward slash MUST NOT be present on that position.
 
 - **Ordered List:** Each ordered list item has the following structure: number + point + space + Text + Line break. Example:
 
-  > /1. This is a ordered list item.
+  > /1. This is an ordered list item.
 
-  > **Obs:** The same observation preesnt in the Unordered List item applies to this case.
+  > **Obs:** The same observation present in the Unordered List item applies to this case.
 
-- **Link:** The visible text has to be enclosed in square brackets and the URL, enclosed in parenthesis, has to immediatly follow the text. Example:
+- **Link:** The visible text has to be enclosed in square brackets and the URL, enclosed in parentheses, has to immediately follow the text. Example:
   > [This is a link\](url)
-- **Image:** Starts with a exclamation point followed by the visible text enclosed in square brackets and the image path, enclosed in parenthesis, immediatly following the text. Example:
+- **Image:** Starts with an exclamation point followed by the visible text enclosed in square brackets and the image path, enclosed in parentheses, immediately following the text. Example:
   > ![This is an image\]\(path)
-- **Blockquote:**
+- **Blockquote:** Starts with a greater than sign followed by at least one space. This element can contain Text, Paragraphs, Headings, Ordered and Unordered Lists. Example:
+  > \> This is a blockquote.
 
 ## Run the code
 
